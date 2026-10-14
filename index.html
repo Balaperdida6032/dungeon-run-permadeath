@@ -114,11 +114,15 @@
 
                     <div class="pixel-box">
                         <h3>Crear Partida</h3>
-                        <label style="font-size: 8px; display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                        <label style="font-size: 8px; display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
                             <input type="checkbox" id="chk-is-public" checked style="width: auto; margin:0;"> 
-                            <span>Sala PÚBLICA (visible en el listado para otros jugadores)</span>
+                            <span>Sala PÚBLICA (visible en el listado para otros jugadores - Solo Multijugador)</span>
                         </label>
-                        <button id="btn-create-room" style="background-color: #a6e3a1; color: #111;">🏰 Crear Sala (Multijugador / Solitario)</button>
+                        
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button id="btn-create-solo" style="background-color: #fab387; color: #111; flex: 1;">👤 Partida Solitario</button>
+                            <button id="btn-create-multi" style="background-color: #a6e3a1; color: #111; flex: 1;">👥 Partida Multijugador</button>
+                        </div>
                     </div>
 
                     <div class="pixel-box">
@@ -199,7 +203,7 @@
                 </div>
 
                 <div class="pixel-box">
-                    <h3 style="color: #a6e3a1;">¿Qué decidirá la party? (Votación)</h3>
+                    <h3 id="story-votes-header" style="color: #a6e3a1;">¿Qué decidirá la party? (Votación)</h3>
                     <div id="story-options-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
                 </div>
             </div>

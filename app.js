@@ -271,7 +271,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     const code = e.target.getAttribute('data-code');
                     try {
                         await joinRoom(currentUser, currentHero, code);
-                        startCampfireFlow(code);
+                        startCampfireFlow(code, false);
                     } catch (err) {
                         showCustomModal(err.message);
                     }
@@ -282,12 +282,20 @@ window.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btn-refresh-rooms').addEventListener('click', listenPublicRooms);
 
-    // CREACIÓN Y UNIÓN DE SALAS
-    document.getElementById('btn-create-room').addEventListener('click', async () => {
+    // BOTÓN DE PARTIDA SOLITARIA
+    document.getElementById('btn-create-solo').addEventListener('click', async () => {
+        if (!currentHero) return showCustomModal("Selecciona un personaje primero.");
+        // Las partidas solitarias son privadas (isPublic: false)
+        const code = await createRoom(currentUser, currentHero, false);
+        startCampfireFlow(code, true);
+    });
+
+    // BOTÓN DE PARTIDA MULTIJUGADOR
+    document.getElementById('btn-create-multi').addEventListener('click', async () => {
         if (!currentHero) return showCustomModal("Selecciona un personaje primero.");
         const isPublic = document.getElementById('chk-is-public').checked;
         const code = await createRoom(currentUser, currentHero, isPublic);
-        startCampfireFlow(code);
+        startCampfireFlow(code, false);
     });
 
     document.getElementById('btn-join-room').addEventListener('click', async () => {
@@ -296,18 +304,18 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!code) return showCustomModal("Introduce un código de sala válido.");
         try {
             await joinRoom(currentUser, currentHero, code);
-            startCampfireFlow(code);
+            startCampfireFlow(code, false);
         } catch (e) {
             showCustomModal(e.message);
         }
     });
 
-    // FLUJO DE LA FOGATA
-    function startCampfireFlow(code) {
+    // FLUJO DE LA FOGATA Y PARTIDA SOLITARIA
+    function startCampfireFlow(code, isSolo = false) {
         switchScreen('screen-campfire');
         document.getElementById('campfire-room-code').innerText = code;
         
-        attachRoomListener(code, (roomData) => {
+        attachRoomListener(code, async (roomData) => {
             if (roomData.players && !roomData.players[currentUser.uid]) {
                 leaveRoomListener();
                 switchScreen('screen-lobby');
@@ -316,9 +324,23 @@ window.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Si es partida solitaria, podemos autoiniciar la aventura de inmediato sin pasar por espera
+            if (isSolo && roomData.status === "waiting" && roomData.host === currentUser.uid) {
+                const roomRef = doc(db, "rooms", code);
+                const turnOrder = [currentUser.uid];
+                await updateDoc(roomRef, { 
+                    status: "exploring", 
+                    currentNode: "start_tavern",
+                    storyVotes: {},
+                    turnOrder, 
+                    activeTurnIndex: 0 
+                });
+                return;
+            }
+
             if (roomData.status === "exploring") {
                 switchScreen('screen-story');
-                renderStoryNode(roomData);
+                renderStoryNode(roomData, isSolo);
             } else if (roomData.status === "fighting") {
                 switchScreen('screen-dungeon');
                 document.getElementById('room-title').innerText = `MAZMORRA - COMBATE`;
@@ -450,7 +472,7 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     // SISTEMA NARRATIVO Y DE VOTACIÓN
-    function renderStoryNode(room) {
+    function renderStoryNode(room, isSolo = false) {
         const nodeId = room.currentNode || "start_tavern";
         const node = storyNodes[nodeId];
         if (!node) return;
@@ -470,6 +492,8 @@ window.addEventListener('DOMContentLoaded', () => {
         optionsContainer.innerHTML = "";
 
         const myVote = room.storyVotes ? room.storyVotes[currentUser.uid] : null;
+        const votesHeader = document.getElementById('story-votes-header');
+        votesHeader.innerText = isSolo ? "¿Qué acción vas a tomar?" : "¿Qué decidirá la party? (Votación)";
 
         node.options.forEach((opt, idx) => {
             const btn = document.createElement('button');
@@ -480,13 +504,13 @@ window.addEventListener('DOMContentLoaded', () => {
                 btn.style.backgroundColor = "#252538";
             }
 
-            btn.innerText = `${opt.text} ${isSelected ? ' [TU VOTO]' : ''}`;
-            btn.addEventListener('click', () => registerStoryVote(idx, room));
+            btn.innerText = `${opt.text} ${isSelected && !isSolo ? ' [TU VOTO]' : ''}`;
+            btn.addEventListener('click', () => registerStoryVote(idx, room, isSolo));
             optionsContainer.appendChild(btn);
         });
     }
 
-    async function registerStoryVote(optionIdx, room) {
+    async function registerStoryVote(optionIdx, room, isSolo = false) {
         if (!currentRoomId) return;
         const roomRef = doc(db, "rooms", currentRoomId);
 
@@ -496,15 +520,16 @@ window.addEventListener('DOMContentLoaded', () => {
         const totalPlayers = Object.keys(room.players || {}).length;
         const currentVotesCount = Object.keys(storyVotes).length;
 
-        if (currentVotesCount >= totalPlayers) {
+        // Si es solitario, se aplica la decisión de inmediato sin esperar a nadie más
+        if (isSolo || currentVotesCount >= totalPlayers) {
             const { selectedIndex, isTie } = resolveStoryVote(storyVotes);
             const currentNode = storyNodes[room.currentNode || "start_tavern"];
             const chosenOption = currentNode.options[selectedIndex];
 
-            let tieText = isTie ? " 🎲 ¡Había un empate y la suerte decidió el camino!" : "";
+            let tieText = (isTie && !isSolo) ? " 🎲 ¡Había un empate y la suerte decidió el camino!" : "";
             
             showCustomModal(
-                `La party decidió: "${chosenOption.text}".${tieText}`,
+                isSolo ? `Elegiste: "${chosenOption.text}".` : `La party decidió: "${chosenOption.text}".${tieText}`,
                 "🗳️ DECISIÓN TOMADA",
                 async () => {
                     await updateDoc(roomRef, { storyVotes: {} });
