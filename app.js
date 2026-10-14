@@ -2,7 +2,7 @@
 import { 
     auth, db, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, signOut, onAuthStateChanged,
-    doc, setDoc, getDoc, updateDoc, deleteDoc, collection, addDoc, getDocs 
+    doc, setDoc, getDoc, updateDoc, deleteDoc, collection, addDoc, getDocs, onSnapshot
 } from './firebase-config.js';
 
 import { rollDice, getStatModifier } from './dnd-mechanics.js';
@@ -13,7 +13,7 @@ import {
 import { 
     currentRoomId, createRoom, joinRoom, attachRoomListener, leaveRoomListener, isReady, setReadyState 
 } from './multiplayer-room.js';
-import { drawDungeonMap, resolveDemocraticMove, executeMove } from './map-system.js';
+import { storyNodes, resolveStoryVote } from './story-system.js';
 
 let currentUser = null;
 let currentHeroId = null;
@@ -34,6 +34,7 @@ window.addEventListener('DOMContentLoaded', () => {
             switchScreen('screen-lobby');
             await loadAccountData(user.uid);
             await loadUserCharacters(user.uid);
+            listenPublicRooms();
         } else {
             currentUser = null;
             currentHero = null;
@@ -67,7 +68,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (btn) btn.classList.add('active-nav');
     }
 
-    // Auth Listeners
+    // AUTH LISTENERS
     document.getElementById('btn-login').addEventListener('click', async () => {
         const email = document.getElementById('auth-email').value;
         const pass = document.getElementById('auth-password').value;
@@ -92,7 +93,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
-    // Lógica Creador de Personajes
+    // CREADOR DE PERSONAJES
     const classSelect = document.getElementById('hero-class');
     function updateStatUI() {
         document.getElementById('stat-points-left').innerText = availablePoints;
@@ -131,13 +132,17 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('hero-creator').style.display = 'block';
         document.getElementById('btn-show-creator').style.display = 'none';
         document.getElementById('party-section').style.display = 'none';
+        document.getElementById('public-rooms-section').style.display = 'none';
         resetStatsForClass("Guerrero");
     });
 
     document.getElementById('btn-cancel-creator').addEventListener('click', () => {
         document.getElementById('hero-creator').style.display = 'none';
         document.getElementById('btn-show-creator').style.display = 'block';
-        if (currentHero) document.getElementById('party-section').style.display = 'block';
+        if (currentHero) {
+            document.getElementById('party-section').style.display = 'block';
+            document.getElementById('public-rooms-section').style.display = 'block';
+        }
     });
 
     async function loadUserCharacters(uid) {
@@ -151,6 +156,7 @@ window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('hero-creator').style.display = 'block';
             document.getElementById('btn-show-creator').style.display = 'none';
             document.getElementById('party-section').style.display = 'none';
+            document.getElementById('public-rooms-section').style.display = 'none';
             return;
         }
 
@@ -173,6 +179,7 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('hero-creator').style.display = 'none';
         document.getElementById('btn-show-creator').style.display = 'none';
         document.getElementById('party-section').style.display = 'block';
+        document.getElementById('public-rooms-section').style.display = 'block';
         document.getElementById('active-hero-display').innerHTML = `
             <strong>Héroe Seleccionado:</strong> ${currentHero.name} (${currentHero.clazz})<br>
             Nivel: ${currentHero.level} | HP: ❤️ ${currentHero.hp}/${currentHero.maxHp} | Oro: 🪙 ${currentHero.gold}
@@ -182,6 +189,7 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-change-hero').addEventListener('click', () => {
         currentHero = null; currentHeroId = null;
         document.getElementById('party-section').style.display = 'none';
+        document.getElementById('public-rooms-section').style.display = 'none';
         document.getElementById('btn-show-creator').style.display = 'block';
         loadUserCharacters(currentUser.uid);
     });
@@ -217,10 +225,62 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Salas y Fogata
+    // PARTIDAS PÚBLICAS Y LISTENER
+    function listenPublicRooms() {
+        const roomsRef = collection(db, "rooms");
+        onSnapshot(roomsRef, (snapshot) => {
+            const listDiv = document.getElementById('public-rooms-list');
+            if (!listDiv) return;
+            listDiv.innerHTML = "";
+            let publicCount = 0;
+
+            snapshot.forEach((docSnap) => {
+                const room = docSnap.data();
+                const code = docSnap.id;
+                if (room.isPublic && room.status === "waiting") {
+                    publicCount++;
+                    const playerCount = Object.keys(room.players || {}).length;
+                    const item = document.createElement('div');
+                    item.className = "pixel-box";
+                    item.style.padding = "10px";
+                    item.style.marginBottom = "8px";
+                    item.style.display = "flex";
+                    item.style.justifyContent = "space-between";
+                    item.style.alignItems = "center";
+                    item.innerHTML = `
+                        <span>🏰 Sala: <strong>${code}</strong> (${playerCount}/4 Jugadores)</span>
+                        <button class="btn-join-public" data-code="${code}" style="margin:0; background-color:#a6e3a1; color:#111;">Unirse</button>
+                    `;
+                    listDiv.appendChild(item);
+                }
+            });
+
+            if (publicCount === 0) {
+                listDiv.innerHTML = `<p style="color: #6c7086; font-size: 8px;">No hay salas públicas abiertas en este momento.</p>`;
+            }
+
+            document.querySelectorAll('.btn-join-public').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    if (!currentHero) return showCustomModal("Selecciona un personaje primero.");
+                    const code = e.target.getAttribute('data-code');
+                    try {
+                        await joinRoom(currentUser, currentHero, code);
+                        startCampfireFlow(code);
+                    } catch (err) {
+                        showCustomModal(err.message);
+                    }
+                });
+            });
+        });
+    }
+
+    document.getElementById('btn-refresh-rooms').addEventListener('click', listenPublicRooms);
+
+    // CREACIÓN Y UNIÓN DE SALAS
     document.getElementById('btn-create-room').addEventListener('click', async () => {
         if (!currentHero) return showCustomModal("Selecciona un personaje primero.");
-        const code = await createRoom(currentUser, currentHero);
+        const isPublic = document.getElementById('chk-is-public').checked;
+        const code = await createRoom(currentUser, currentHero, isPublic);
         startCampfireFlow(code);
     });
 
@@ -236,17 +296,26 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // FLUJO DE LA FOGATA
     function startCampfireFlow(code) {
         switchScreen('screen-campfire');
         document.getElementById('campfire-room-code').innerText = code;
         
         attachRoomListener(code, (roomData) => {
+            // Comprobar si fui expulsado
+            if (roomData.players && !roomData.players[currentUser.uid]) {
+                leaveRoomListener();
+                switchScreen('screen-lobby');
+                showCustomModal("Has sido expulsado de la sala por el host.", "❌ EXPULSADO");
+                return;
+            }
+
             if (roomData.status === "exploring") {
-                switchScreen('screen-map');
-                drawDungeonMap();
+                switchScreen('screen-story');
+                renderStoryNode(roomData);
             } else if (roomData.status === "fighting") {
                 switchScreen('screen-dungeon');
-                document.getElementById('room-title').innerText = `MAZMORRA - SALA: ${code}`;
+                document.getElementById('room-title').innerText = `MAZMORRA - COMBATE`;
                 updateDungeonUI(roomData);
             } else {
                 updateCampfireUI(roomData);
@@ -254,26 +323,61 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // CAMPAMENTO CON 4 SLOTS FIJOS Y BOTÓN DE KICK
     function updateCampfireUI(room) {
         const partyListDiv = document.getElementById('campfire-party-list');
         const players = room.players || {};
+        const playerEntries = Object.entries(players);
+        
         let allReady = true;
-        let playerCount = 0;
+        let playerCount = playerEntries.length;
+        const maxSlots = 4;
 
         partyListDiv.innerHTML = "";
-        for (const [uid, player] of Object.entries(players)) {
-            playerCount++;
-            const readyText = player.ready ? "🟢 LISTO" : "⏳ Esperando...";
-            const readyColor = player.ready ? "#a6e3a1" : "#fab387";
 
-            partyListDiv.innerHTML += `
-                <div class="player-card-dungeon" style="display:flex; justify-content:space-between; align-items:center;">
-                    <span>⚔️ <strong>${player.name}</strong> (${player.clazz}) ${uid === room.host ? '👑 [Host]' : ''}</span>
-                    <span style="color: ${readyColor}; font-weight: bold;">${readyText}</span>
-                </div>
-            `;
-            if (!player.ready) allReady = false;
+        for (let i = 0; i < maxSlots; i++) {
+            const slotDiv = document.createElement('div');
+            
+            if (i < playerEntries.length) {
+                const [uid, player] = playerEntries[i];
+                const isMe = (uid === currentUser.uid);
+                const isHost = (room.host === uid);
+                const amIHost = (room.host === currentUser.uid);
+                
+                const readyText = player.ready ? "🟢 LISTO" : "⏳ Esperando...";
+                const readyColor = player.ready ? "#a6e3a1" : "#fab387";
+
+                slotDiv.className = "campfire-slot occupied";
+                
+                let kickButtonHTML = "";
+                if (amIHost && !isMe) {
+                    kickButtonHTML = `<button class="btn-kick" data-uid="${uid}">❌ Expulsar</button>`;
+                }
+
+                slotDiv.innerHTML = `
+                    <span>⚔️ <strong>${player.name}</strong> (${player.clazz}) ${isHost ? '👑 [Host]' : ''} ${isMe ? '(Tú)' : ''}</span>
+                    <div style="display:flex; align-items:center; gap: 10px;">
+                        <span style="color: ${readyColor}; font-weight: bold;">${readyText}</span>
+                        ${kickButtonHTML}
+                    </div>
+                `;
+
+                if (!player.ready) allReady = false;
+            } else {
+                slotDiv.className = "campfire-slot";
+                slotDiv.innerHTML = `<span>💤 [Espacio Vacío - Esperando aventurero...]</span><span>---</span>`;
+                allReady = false;
+            }
+
+            partyListDiv.appendChild(slotDiv);
         }
+
+        document.querySelectorAll('.btn-kick').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const targetUid = e.target.getAttribute('data-uid');
+                await kickPlayerFromRoom(room, targetUid);
+            });
+        });
 
         const isHost = (room.host === currentUser.uid);
         const startBtn = document.getElementById('btn-start-adventure');
@@ -284,6 +388,19 @@ window.addEventListener('DOMContentLoaded', () => {
             startBtn.disabled = true;
             startBtn.style.opacity = "0.5";
         }
+    }
+
+    async function kickPlayerFromRoom(room, targetUid) {
+        if (!currentRoomId) return;
+        const roomRef = doc(db, "rooms", currentRoomId);
+        delete room.players[targetUid];
+        if (room.turnOrder) {
+            room.turnOrder = room.turnOrder.filter(id => id !== targetUid);
+        }
+        await updateDoc(roomRef, { 
+            players: room.players,
+            turnOrder: room.turnOrder || []
+        });
     }
 
     document.getElementById('btn-toggle-ready').addEventListener('click', async () => {
@@ -311,7 +428,13 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const room = roomSnap.data();
         const turnOrder = Object.keys(room.players);
-        await updateDoc(roomRef, { status: "exploring", turnOrder, activeTurnIndex: 0, mapVotes: {} });
+        await updateDoc(roomRef, { 
+            status: "exploring", 
+            currentNode: "start_tavern",
+            storyVotes: {},
+            turnOrder, 
+            activeTurnIndex: 0 
+        });
     });
 
     document.getElementById('btn-leave-campfire').addEventListener('click', async () => {
@@ -320,47 +443,118 @@ window.addEventListener('DOMContentLoaded', () => {
         await loadUserCharacters(currentUser.uid);
     });
 
-    // SISTEMA DE VOTACIÓN DEMOCRÁTICA PARA EL MAPA
-    async function registerMoveVote(direction) {
+    // SISTEMA NARRATIVO Y DE VOTACIÓN
+    function renderStoryNode(room) {
+        const nodeId = room.currentNode || "start_tavern";
+        const node = storyNodes[nodeId];
+        if (!node) return;
+
+        document.getElementById('story-title').innerText = node.title;
+        document.getElementById('story-text').innerText = node.text;
+
+        const imgEl = document.getElementById('story-image');
+        if (node.image) {
+            imgEl.src = node.image;
+            imgEl.style.display = "block";
+        } else {
+            imgEl.style.display = "none";
+        }
+
+        const optionsContainer = document.getElementById('story-options-container');
+        optionsContainer.innerHTML = "";
+
+        const myVote = room.storyVotes ? room.storyVotes[currentUser.uid] : null;
+
+        node.options.forEach((opt, idx) => {
+            const btn = document.createElement('button');
+            btn.className = "story-option-btn";
+            const isSelected = (myVote === idx);
+            if (isSelected) {
+                btn.style.borderColor = "#a6e3a1";
+                btn.style.backgroundColor = "#252538";
+            }
+
+            btn.innerText = `${opt.text} ${isSelected ? ' [TU VOTO]' : ''}`;
+            btn.addEventListener('click', () => registerStoryVote(idx, room));
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    async function registerStoryVote(optionIdx, room) {
         if (!currentRoomId) return;
         const roomRef = doc(db, "rooms", currentRoomId);
-        const roomSnap = await getDoc(roomRef);
-        if (!roomSnap.exists()) return;
 
-        const room = roomSnap.data();
-        const mapVotes = room.mapVotes || {};
-        mapVotes[currentUser.uid] = direction;
+        const storyVotes = room.storyVotes || {};
+        storyVotes[currentUser.uid] = optionIdx;
 
         const totalPlayers = Object.keys(room.players || {}).length;
-        const currentVotesCount = Object.keys(mapVotes).length;
+        const currentVotesCount = Object.keys(storyVotes).length;
 
         if (currentVotesCount >= totalPlayers) {
-            const result = resolveDemocraticMove(mapVotes);
-            let tieText = result.isTie ? " 🎲 ¡Había un empate y se decidió al azar!" : "";
+            const { selectedIndex, isTie } = resolveStoryVote(storyVotes);
+            const currentNode = storyNodes[room.currentNode || "start_tavern"];
+            const chosenOption = currentNode.options[selectedIndex];
+
+            let tieText = isTie ? " 🎲 ¡Había un empate y la suerte decidió el camino!" : "";
             
             showCustomModal(
-                `La party votó avanzar hacia: ${result.selectedDirection}.${tieText}`,
-                "🗳️ DECISIÓN DEMOCRÁTICA",
+                `La party decidió: "${chosenOption.text}".${tieText}`,
+                "🗳️ DECISIÓN TOMADA",
                 async () => {
-                    await updateDoc(roomRef, { mapVotes: {} });
-                    executeMove(result.dx, result.dy, async () => {
-                        await updateDoc(roomRef, { status: "fighting" });
-                        switchScreen('screen-dungeon');
-                    });
+                    await updateDoc(roomRef, { storyVotes: {} });
+                    
+                    if (chosenOption.nextNode) {
+                        if (chosenOption.nextNode.startsWith("start_combat_")) {
+                            startCombatFromStory(chosenOption.nextNode, roomRef);
+                        } else {
+                            await updateDoc(roomRef, { currentNode: chosenOption.nextNode });
+                        }
+                    } else if (chosenOption.check) {
+                        const statVal = currentHero.stats[chosenOption.check] || 10;
+                        const mod = getStatModifier(statVal);
+                        const d20 = rollDice(20);
+                        const total = d20 + mod;
+
+                        if (total >= chosenOption.dc) {
+                            showCustomModal(`🎲 Tirada de Chequeo: ${d20}+${mod}=${total} vs CD ${chosenOption.dc}. ¡ÉXITO!`);
+                            const next = chosenOption.successNode;
+                            if (next.startsWith("start_combat_")) startCombatFromStory(next, roomRef);
+                            else await updateDoc(roomRef, { currentNode: next });
+                        } else {
+                            showCustomModal(`🎲 Tirada de Chequeo: ${d20}+${mod}=${total} vs CD ${chosenOption.dc}. ¡FRACASO!`);
+                            const next = chosenOption.failNode;
+                            if (next.startsWith("start_combat_")) startCombatFromStory(next, roomRef);
+                            else await updateDoc(roomRef, { currentNode: next });
+                        }
+                    }
                 }
             );
         } else {
-            await updateDoc(roomRef, { mapVotes });
-            showCustomModal(`Voto registrado (${direction}). Esperando que los demás miembros voten...`, "🗳️ VOTO REGISTRADO");
+            await updateDoc(roomRef, { storyVotes });
         }
     }
 
-    document.getElementById('btn-move-up').addEventListener('click', () => registerMoveVote('UP'));
-    document.getElementById('btn-move-down').addEventListener('click', () => registerMoveVote('DOWN'));
-    document.getElementById('btn-move-left').addEventListener('click', () => registerMoveVote('LEFT'));
-    document.getElementById('btn-move-right').addEventListener('click', () => registerMoveVote('RIGHT'));
+    async function startCombatFromStory(combatType, roomRef) {
+        let enemy = {
+            name: "Goblin Asaltante", hp: 45, maxHp: 45, ac: 12, attackBonus: 3, damageDice: 6, expReward: 50, goldReward: 25,
+            image: "./assets/sprites/goblin.png"
+        };
 
-    // Lógica de Combate y UI de Mazmorra
+        if (combatType === "start_combat_rats") {
+            enemy = {
+                name: "Rata Gigante de las Cloacas", hp: 30, maxHp: 30, ac: 10, attackBonus: 2, damageDice: 4, expReward: 30, goldReward: 10,
+                image: "./assets/sprites/rat.png"
+            };
+        }
+
+        await updateDoc(roomRef, {
+            status: "fighting",
+            enemy,
+            log: [`⚔️ ¡Ha comenzado un combate contra ${enemy.name}!`]
+        });
+    }
+
+    // COMBATE TÁCTICO POR TURNOS
     function updateDungeonUI(room) {
         const hasEnemy = room.enemy && room.enemy.hp > 0;
         const turnOrder = room.turnOrder || [];
@@ -373,6 +567,8 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('btn-action-skill').disabled = !canAct;
         document.getElementById('btn-action-potion').disabled = !canAct;
         document.getElementById('btn-action-flee').disabled = !canAct;
+
+        document.getElementById('potion-count').innerText = currentHero.potions || 0;
 
         const partyListDiv = document.getElementById('party-members-list');
         partyListDiv.innerHTML = "";
@@ -416,10 +612,10 @@ window.addEventListener('DOMContentLoaded', () => {
         }
 
         const logContainer = document.getElementById('combat-log');
-        logContainer.innerHTML = room.log.map(l => `> ${l}`).join('<br>');
+        logContainer.innerHTML = (room.log || []).map(l => `> ${l}`).join('<br>');
         logContainer.scrollTop = logContainer.scrollHeight;
 
-        if (room.enemy.hp <= 0 && room.status === "fighting") {
+        if (room.enemy && room.enemy.hp <= 0 && room.status === "fighting") {
             room.status = "victory";
             const expReward = room.enemy.expReward || 50;
             const goldReward = room.enemy.goldReward || 30;
@@ -447,7 +643,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const activeTurnIndex = room.activeTurnIndex || 0;
 
         if (turnOrder[activeTurnIndex] !== currentUser.uid) return showCustomModal("Aún no es tu turno.");
-        if (room.enemy.hp <= 0) return showCustomModal("No hay enemigo para atacar.");
+        if (!room.enemy || room.enemy.hp <= 0) return showCustomModal("No hay enemigo para atacar.");
 
         let statValue = currentHero.stats.str;
         let weaponDice = 8;
@@ -456,7 +652,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const statMod = getStatModifier(statValue);
         const proficiencyBonus = 2;
-        
         const d20Roll = rollDice(20);
         const totalAttackRoll = d20Roll + statMod + proficiencyBonus;
 

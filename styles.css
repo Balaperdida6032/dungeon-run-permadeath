@@ -13,7 +13,7 @@ body {
     min-height: 100vh;
 }
 
-/* Propiedad fundamental para que los sprites de Pixelrepo no pierdan nitidez */
+/* Renderizado nítido de píxeles para sprites */
 img, canvas {
     image-rendering: pixelated;
     image-rendering: crisp-edges;
@@ -101,7 +101,7 @@ img, canvas {
 }
 
 /* ==========================================
-   CAJAS Y ELEMENTOS PIXEL ART
+   CAJAS Y CONTENEDORES PIXEL ART
    ========================================== */
 .pixel-box {
     background-color: #1e1e2e;
@@ -117,20 +117,85 @@ img, canvas {
     margin-top: 0;
 }
 
-/* Contenedor del retrato del enemigo en combate */
-#enemy-portrait {
-    width: 96px;
-    height: 96px;
-    object-fit: contain;
+/* ==========================================
+   CAMPAMENTO Y LOBBY (SLOTS DE 4 JUGADORES)
+   ========================================== */
+.campfire-slot {
     background-color: #11111b;
+    border: 2px dashed #45475a;
+    padding: 12px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 8px;
+    color: #6c7086;
+}
+
+.campfire-slot.occupied {
     border: 2px solid #45475a;
-    padding: 4px;
-    margin: 0 auto 10px auto;
-    display: block;
+    background-color: #181825;
+    color: #cdd6f4;
+}
+
+.btn-kick {
+    background-color: #f38ba8;
+    color: #11111b;
+    border: 1px solid #111;
+    padding: 4px 8px;
+    font-size: 7px;
+    cursor: pointer;
+    box-shadow: 1px 1px 0px 0px #000;
+}
+
+.btn-kick:hover {
+    background-color: #eba0ac;
 }
 
 /* ==========================================
-   BOTONES Y FORMULARIOS
+   HISTORIA NARRATIVA INTERACTIVA
+   ========================================== */
+#story-image {
+    max-width: 180px;
+    height: auto;
+    display: block;
+    margin: 0 auto 15px auto;
+    border: 2px solid #45475a;
+    background-color: #11111b;
+    padding: 6px;
+}
+
+#story-text {
+    font-size: 10px;
+    line-height: 1.8;
+    color: #cdd6f4;
+    text-align: left;
+    background: #11111b;
+    padding: 15px;
+    border: 2px solid #313244;
+    margin: 0;
+}
+
+.story-option-btn {
+    width: 100%;
+    text-align: left;
+    padding: 12px;
+    font-size: 9px;
+    line-height: 1.4;
+    background-color: #313244;
+    color: #cdd6f4;
+    border: 2px solid #45475a;
+    margin-top: 8px;
+}
+
+.story-option-btn:hover {
+    background-color: #89b4fa;
+    color: #11111b;
+    border-color: #89b4fa;
+}
+
+/* ==========================================
+   BOTONES, FORMULARIOS Y ELEMENTOS DE ENTRADA
    ========================================== */
 button {
     font-family: 'Press Start 2P', monospace;
@@ -166,8 +231,19 @@ input, select {
 }
 
 /* ==========================================
-   BARRAS DE VIDA Y COMBATE
+   SISTEMA DE COMBATE Y ENTRADAS
    ========================================== */
+#enemy-portrait {
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+    background-color: #11111b;
+    border: 2px solid #45475a;
+    padding: 4px;
+    margin: 0 auto 10px auto;
+    display: block;
+}
+
 .hp-bar-container {
     width: 100%;
     background-color: #313244;
@@ -208,7 +284,7 @@ input, select {
 }
 
 /* ==========================================
-   CAMINO DE NIVELES Y LOGROS
+   CAMINO DE NIVELES Y PANTALLA DE LOGROS
    ========================================== */
 #level-road-container {
     overflow-x: auto;
@@ -259,7 +335,7 @@ input, select {
 }
 
 /* ==========================================
-   NOTIFICACIONES Y MODALES
+   NOTIFICACIONES FLOTANTES (LOGROS/TOASTS)
    ========================================== */
 #toast-container {
     position: fixed;
@@ -271,6 +347,49 @@ input, select {
     gap: 10px;
 }
 
+.achievement-toast {
+    background-color: #1e1e2e;
+    border: 3px solid #f9e2af;
+    color: #cdd6f4;
+    padding: 14px 18px;
+    box-shadow: 4px 4px 0px 0px #000;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    min-width: 280px;
+    font-family: 'Press Start 2P', monospace;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(120%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.toast-icon {
+    font-size: 24px;
+}
+
+.toast-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.toast-title {
+    color: #f9e2af;
+    font-size: 7px;
+}
+
+.toast-name {
+    color: #a6e3a1;
+    font-size: 8px;
+    font-weight: bold;
+}
+
+/* ==========================================
+   MODAL PERSONALIZADO DE LA APLICACIÓN
+   ========================================== */
 .modal-overlay {
     position: fixed;
     top: 0;
