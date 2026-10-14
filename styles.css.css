@@ -1,0 +1,135 @@
+/* Estilos Retro Pixel Art */
+* {
+    box-sizing: border-box;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+body {
+    background-color: #11111b;
+    color: #cdd6f4;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+#game-container {
+    width: 100%;
+    max-width: 800px;
+    background-color: #181825;
+    border: 4px solid #45475a;
+    box-shadow: 0 0 0 4px #11111b, 0 8px 0 0 #000;
+    padding: 20px;
+    position: relative;
+}
+
+h1, h2, h3 {
+    color: #f9e2af;
+    text-align: center;
+    text-shadow: 2px 2px #000;
+    line-height: 1.4;
+}
+
+button {
+    font-family: 'Press Start 2P', monospace;
+    background-color: #313244;
+    color: #cdd6f4;
+    border: 2px solid #6c7086;
+    padding: 12px 15px;
+    cursor: pointer;
+    margin: 6px 0;
+    width: 100%;
+    box-shadow: 0 4px 0 #1e1e2e;
+    transition: transform 0.1s, background-color 0.1s;
+}
+
+button:hover {
+    background-color: #45475a;
+    color: #a6e3a1;
+}
+
+button:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #1e1e2e;
+}
+
+input, .pixel-select {
+    font-family: 'Press Start 2P', monospace;
+    background-color: #11111b;
+    border: 2px solid #585b70;
+    color: #cdd6f4;
+    padding: 10px;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.screen {
+    display: none;
+}
+
+.active-screen {
+    display: block;
+}
+
+.pixel-box {
+    background-color: #1e1e2e;
+    border: 2px dashed #585b70;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.flex-row {
+    display: flex;
+    gap: 10px;
+}
+
+@media (max-width: 600px) {
+    .flex-row {
+        flex-direction: column;
+    }
+}
+
+/* Registro de combate */
+#combat-log {
+    background-color: #000;
+    border: 2px solid #45475a;
+    height: 130px;
+    overflow-y: auto;
+    padding: 10px;
+    font-size: 8px;
+    line-height: 1.6;
+    color: #a6e3a1;
+    margin-bottom: 15px;
+}
+
+.hp-bar-container {
+    background-color: #313244;
+    border: 2px solid #585b70;
+    height: 16px;
+    width: 100%;
+    position: relative;
+    margin: 5px 0;
+}
+
+.hp-bar-fill {
+    background-color: #a6e3a1;
+    height: 100%;
+    width: 100%;
+    transition: width 0.3s ease;
+}
+
+.mp-bar-fill {
+    background-color: #89b4fa;
+    height: 100%;
+    width: 100%;
+    transition: width 0.3s ease;
+}
+
+.text-danger { color: #f38ba8; }
+.text-warning { color: #fab387; }
+.text-success { color: #a6e3a1; }

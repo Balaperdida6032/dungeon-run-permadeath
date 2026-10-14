@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Run: Permadeath</title>
+    <!-- Fuente Pixel Art Retro -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- PANTALLA 1: AUTENTICACIÓN -->
+        <div id="screen-auth" class="screen active-screen">
+            <h1>DUNGEON RUN:<br>PERMADEATH</h1>
+            <div class="pixel-box">
+                <h3>Iniciar Sesión</h3>
+                <input type="email" id="auth-email" placeholder="Correo electrónico">
+                <input type="password" id="auth-password" placeholder="Contraseña">
+                <button id="btn-login">Entrar con Email</button>
+                <button id="btn-register">Registrarse</button>
+                <button id="btn-google" style="background-color: #cb4b16;">Entrar con Google</button>
+            </div>
+        </div>
+
+        <!-- PANTALLA 2: LOBBY / SELECCIÓN DE HÉROE -->
+        <div id="screen-lobby" class="screen">
+            <h1>LOBBY DEL HÉROE</h1>
+            <div id="hero-info" class="pixel-box">
+                <!-- Carga dinámicamente -->
+            </div>
+            
+            <div id="hero-creator" class="pixel-box" style="display:none;">
+                <h3>Crear Personaje</h3>
+                <input type="text" id="hero-name" placeholder="Nombre del Héroe">
+                <label for="hero-class">Clase:</label>
+                <select id="hero-class" class="pixel-select">
+                    <option value="Guerrero">Guerrero (Fuerte y Resistente)</option>
+                    <option value="Mago">Mago (Daño Mágico Alto)</option>
+                    <option value="Pícaro">Pícaro (Veloz y Crítico)</option>
+                </select>
+                <button id="btn-create-hero">Forjar Héroe</button>
+            </div>
+
+            <div class="pixel-box" id="party-section">
+                <h3>Mazmorra Multijugador</h3>
+                <input type="text" id="room-code-input" placeholder="Código de Sala (Ej: AB12)">
+                <button id="btn-create-room">Crear Nueva Sala</button>
+                <button id="btn-join-room">Unirse a Sala</button>
+            </div>
+            <button id="btn-logout" style="background-color: #f38ba8; color:#111;">Cerrar Sesión</button>
+        </div>
+
+        <!-- PANTALLA 3: MAZMORRA / COMBATE POR TURNOS -->
+        <div id="screen-dungeon" class="screen">
+            <h2 id="room-title">MAZMORRA - SALA</h2>
+            <div class="flex-row">
+                <div class="pixel-box" style="flex:1;">
+                    <h3>Héroes en la Party</h3>
+                    <div id="party-members-list"></div>
+                </div>
+                <div class="pixel-box" style="flex:1;">
+                    <h3>Enemigo</h3>
+                    <div id="enemy-name" class="text-warning">Cargando...</div>
+                    <div class="hp-bar-container"><div id="enemy-hp-bar" class="hp-bar-fill"></div></div>
+                    <span id="enemy-hp-text">HP: --/--</span>
+                </div>
+            </div>
+
+            <div id="combat-log"></div>
+
+            <div class="pixel-box" id="combat-actions">
+                <h3>Tus Acciones</h3>
+                <button id="btn-action-attack">⚔️ Atacar</button>
+                <button id="btn-action-skill">✨ Habilidad Especial</button>
+                <button id="btn-action-potion">🧪 Usar Poción (<span id="potion-count">0</span>)</button>
+                <button id="btn-action-flee" style="background-color: #fab387; color:#111;">🏃‍♂️ Huir / Extraerse</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script principal como módulo -->
+    <script type="module" src="script.js"></script>
+</body>
+</html>
