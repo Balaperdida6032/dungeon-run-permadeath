@@ -99,13 +99,34 @@
                     <button id="btn-cancel-creator" style="background-color: #f38ba8; color:#111;">Cancelar</button>
                 </div>
 
+                <!-- SECCIÓN DE UNIRSE O CREAR PARTIDAS -->
                 <div class="pixel-box" id="party-section" style="display:none;">
-                    <h3>Mazmorra Multijugador</h3>
+                    <h3>Aventura Multijugador / Solitario</h3>
                     <p id="active-hero-display" style="color: #a6e3a1; margin-bottom: 15px;"></p>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-size: 8px; display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                            <input type="checkbox" id="chk-is-public" checked style="width: auto; margin:0;"> 
+                            <span>Hacer la sala PÚBLICA (visible para otros jugadores)</span>
+                        </label>
+                        <button id="btn-create-room" style="background-color: #a6e3a1; color: #111;">🏰 Crear Nueva Sala</button>
+                    </div>
+
+                    <hr style="border-color: #45475a; margin: 15px 0;">
+
                     <input type="text" id="room-code-input" placeholder="Código de Sala (Ej: AB12)">
-                    <button id="btn-create-room">Crear Nueva Sala</button>
-                    <button id="btn-join-room">Unirse a Sala</button>
-                    <button id="btn-change-hero" style="background-color: #fab387; color:#111; margin-top: 10px;">Cambiar de Personaje</button>
+                    <button id="btn-join-room">Unirse con Código</button>
+                    
+                    <button id="btn-change-hero" style="background-color: #fab387; color:#111; margin-top: 15px;">Cambiar de Personaje</button>
+                </div>
+
+                <!-- LISTA DE PARTIDAS PÚBLICAS -->
+                <div class="pixel-box" id="public-rooms-section" style="display:none;">
+                    <h3>🌐 Partidas Públicas Disponibles</h3>
+                    <div id="public-rooms-list" style="margin-bottom: 10px;">
+                        <p style="color: #6c7086; font-size: 8px;">No hay salas públicas en este momento.</p>
+                    </div>
+                    <button id="btn-refresh-rooms" style="background-color: #89b4fa; color:#111;">🔄 Actualizar Lista</button>
                 </div>
             </div>
 
@@ -140,7 +161,7 @@
                 <div id="achievements-list"></div>
             </div>
 
-            <!-- PANTALLA LA FOGATA -->
+            <!-- PANTALLA LA FOGATA / CAMPAMENTO -->
             <div id="screen-campfire" class="screen">
                 <h1 style="color: #fab387;">🔥 CAMPAMENTO - FOGATA 🔥</h1>
                 <div class="pixel-box" style="text-align: center;">
@@ -160,24 +181,22 @@
                 </div>
             </div>
 
-            <!-- PANTALLA DE EXPLORACIÓN / MAPA DE LA MAZMORRA -->
-            <div id="screen-map" class="screen">
-                <h2 id="map-room-title">MAZMORRA - PISO 1</h2>
+            <!-- PANTALLA DE HISTORIA NARRATIVA INTERACTIVA -->
+            <div id="screen-story" class="screen">
+                <h2 id="story-title" style="color: #f9e2af; text-align: center;">CARGANDO HISTORIA...</h2>
+                
                 <div class="pixel-box" style="text-align: center;">
-                    <canvas id="dungeon-canvas" width="400" height="400" style="background:#000; border:2px solid #45475a; image-rendering: pixelated; margin: 0 auto; display: block;"></canvas>
-                    <p style="font-size: 9px; color: #a6e3a1; margin-top: 15px;">Usa los botones para explorar y encontrar enemigos:</p>
-                    <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
-                        <button id="btn-move-up" style="width:60px;">⬆️</button>
-                    </div>
-                    <div style="display: flex; justify-content: center; gap: 10px; margin-top: 5px;">
-                        <button id="btn-move-left" style="width:60px;">⬅️</button>
-                        <button id="btn-move-down" style="width:60px;">⬇️</button>
-                        <button id="btn-move-right" style="width:60px;">➡️</button>
-                    </div>
+                    <img id="story-image" src="" alt="Escena" style="max-width: 180px; height: auto; image-rendering: pixelated; margin: 0 auto 15px auto; display: none; border: 2px solid #45475a;">
+                    <p id="story-text" style="font-size: 10px; line-height: 1.8; color: #cdd6f4; text-align: left; background: #11111b; padding: 15px; border: 2px solid #313244; margin:0;"></p>
+                </div>
+
+                <div class="pixel-box">
+                    <h3 style="color: #a6e3a1;">¿Qué decidirá la party? (Votación)</h3>
+                    <div id="story-options-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
                 </div>
             </div>
 
-            <!-- PANTALLA MAZMORRA (COMBATE TÁCTICO) -->
+            <!-- PANTALLA MAZMORRA (COMBATE TÁCTICO POR TURNOS) -->
             <div id="screen-dungeon" class="screen">
                 <h2 id="room-title">MAZMORRA - COMBATE</h2>
                 <div class="flex-row">
