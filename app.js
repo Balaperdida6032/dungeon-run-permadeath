@@ -1,4 +1,4 @@
-// app.js - Punto de Entrada Principal del Juego (Versión Definitiva Blindada contra null)
+// app.js - Punto de Entrada Principal del Juego (Versión Final Completa e Integrada)
 import { 
     auth, db, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, signOut, onAuthStateChanged,
@@ -13,7 +13,7 @@ import {
 import { 
     currentRoomId, createRoom, joinRoom, attachRoomListener, leaveRoomListener, isReady, setReadyState 
 } from './multiplayer-room.js';
-import { storyNodes, resolveStoryVote } from './story-system.js';
+import { storyNodes, resolveStoryVote, getDynamicImageForText } from './story-system.js';
 
 let currentUser = null;
 let currentHeroId = null;
@@ -22,6 +22,7 @@ let currentHero = null;
 let availablePoints = 5;
 let customStats = { str: 10, dex: 10, int: 10 };
 let baseStats = { str: 10, dex: 10, int: 10 };
+let typingTimer = null;
 
 window.addEventListener('DOMContentLoaded', () => {
 
@@ -496,23 +497,45 @@ window.addEventListener('DOMContentLoaded', () => {
         showLobbyView('adventure');
     });
 
-    // SISTEMA NARRATIVO Y DE VOTACIÓN
+    // SISTEMA NARRATIVO Y DE VOTACIÓN CON MÁQUINA DE ESCRIBIR E IMÁGENES DINÁMICAS
     function renderStoryNode(room, isSolo = false) {
         const nodeId = room.currentNode || "start_tavern";
         const node = storyNodes[nodeId];
         if (!node) return;
 
-        safeSetText('story-title', node.title);
-        safeSetText('story-text', node.text);
+        if (typingTimer) clearInterval(typingTimer);
 
+        safeSetText('story-title', node.title);
+        
+        const textElement = document.getElementById('story-text');
         const imgEl = document.getElementById('story-image');
+        
         if (imgEl) {
-            if (node.image) {
-                imgEl.src = node.image;
-                imgEl.style.display = "block";
-            } else {
-                imgEl.style.display = "none";
-            }
+            imgEl.src = node.defaultImage || "./assets/sprites/Campfire_4x.png";
+            imgEl.style.display = "block";
+        }
+
+        if (textElement) {
+            textElement.innerText = "";
+            let charIndex = 0;
+            const fullText = node.text;
+
+            typingTimer = setInterval(() => {
+                if (charIndex < fullText.length) {
+                    textElement.innerText += fullText.charAt(charIndex);
+                    charIndex++;
+
+                    if (imgEl) {
+                        const currentShownText = textElement.innerText;
+                        const dynamicImg = getDynamicImageForText(currentShownText, node.defaultImage);
+                        if (!imgEl.src.endsWith(dynamicImg)) {
+                            imgEl.src = dynamicImg;
+                        }
+                    }
+                } else {
+                    clearInterval(typingTimer);
+                }
+            }, 25);
         }
 
         const optionsContainer = document.getElementById('story-options-container');
@@ -823,7 +846,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Funciones auxiliares de seguridad para evitar errores cuando un elemento no existe en el DOM actual
+// Funciones auxiliares de seguridad
 function safeAddEvent(elementId, eventType, callback) {
     const el = document.getElementById(elementId);
     if (el) {
