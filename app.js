@@ -1,4 +1,4 @@
-// app.js - Punto de Entrada Principal del Juego (Versión Final Definitiva)
+// app.js - Punto de Entrada Principal del Juego (Versión Final Completa)
 import { 
     auth, db, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, signOut, onAuthStateChanged,
@@ -60,7 +60,7 @@ window.addEventListener('DOMContentLoaded', () => {
         repeatLastSpeech();
     });
 
-    // NAVBAR
+    // NAVBAR LATERAL
     safeAddEvent('nav-lobby', 'click', () => {
         setNavActive('nav-lobby');
         switchScreen('screen-lobby');
@@ -84,7 +84,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (btn) btn.classList.add('active-nav');
     }
 
-    // AUTH
+    // AUTH LISTENERS
     safeAddEvent('btn-login', 'click', async () => {
         const email = document.getElementById('auth-email').value;
         const pass = document.getElementById('auth-password').value;
@@ -109,7 +109,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     safeAddEvent('btn-logout', 'click', () => signOut(auth));
 
-    // CREADOR Y STATS
+    // CREADOR DE PERSONAJES Y ESTADÍSTICAS
     const classSelect = document.getElementById('hero-class');
     function updateStatUI() {
         safeSetText('stat-points-left', availablePoints);
@@ -262,7 +262,7 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // SALAS PÚBLICAS
+    // PARTIDAS PÚBLICAS Y LISTENER
     function listenPublicRooms() {
         const roomsRef = collection(db, "rooms");
         onSnapshot(roomsRef, (snapshot) => {
@@ -313,7 +313,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     safeAddEvent('btn-refresh-rooms', 'click', listenPublicRooms);
 
-    // PARTIDA SOLITARIO
+    // MODO SOLITARIO
     safeAddEvent('btn-create-solo', 'click', async () => {
         if (!currentHero) return showCustomModal("Selecciona un personaje primero.");
         try {
@@ -332,7 +332,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // MULTIJUGADOR
+    // MODO MULTIJUGADOR
     safeAddEvent('btn-create-multi', 'click', async () => {
         if (!currentHero) return showCustomModal("Selecciona un personaje primero.");
         try {
@@ -509,7 +509,7 @@ window.addEventListener('DOMContentLoaded', () => {
         showLobbyView('adventure');
     });
 
-    // NARRATIVA CON MÁQUINA DE ESCRIBIR E IMÁGENES DINÁMICAS
+    // SISTEMA NARRATIVO CON DISPARO DE AUDIO INMEDIATO AL CARGAR EL NODO
     function renderStoryNode(room, isSolo = false) {
         const nodeId = room.currentNode || "start_tavern";
         const node = storyNodes[nodeId];
@@ -532,7 +532,7 @@ window.addEventListener('DOMContentLoaded', () => {
             let charIndex = 0;
             const fullText = node.text;
 
-            // Disparar síntesis de voz automática
+            // 🚀 DISPARO INMEDIATO DE AUDIO AL CARGAR EL NODO NARRATIVO
             speakNarratorText(fullText, 0);
 
             typingTimer = setInterval(() => {
@@ -652,6 +652,7 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // COMBATE TÁCTICO POR TURNOS
     function updateDungeonUI(room) {
         const hasEnemy = room.enemy && room.enemy.hp > 0;
         const turnOrder = room.turnOrder || [];
