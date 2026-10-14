@@ -1,5 +1,5 @@
-// map-system.js - Motor de Exploración del Mapa 2D por Cuadrícula
-import { switchScreen } from './ui-controller.js';
+// map-system.js - Motor de Exploración y Movimiento por Votación Democrática
+import { switchScreen, showCustomModal } from './ui-controller.js';
 
 const TILE_SIZE = 40;
 const MAP_SIZE = 10;
@@ -43,7 +43,6 @@ export function drawDungeonMap() {
                 ctx.fillStyle = "#181825";
                 ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
 
-                // Elementos Especiales
                 if (tile === 4) {
                     ctx.fillStyle = "#f38ba8"; // Enemigo
                     ctx.beginPath();
@@ -53,14 +52,14 @@ export function drawDungeonMap() {
                     ctx.fillStyle = "#f9e2af"; // Cofre
                     ctx.fillRect(x + 10, y + 10, 20, 20);
                 } else if (tile === 2) {
-                    ctx.fillStyle = "#a6e3a1"; // Escalera / Salida
+                    ctx.fillStyle = "#a6e3a1"; // Salida
                     ctx.fillRect(x + 5, y + 5, 30, 30);
                 }
             }
         }
     }
 
-    // Dibujar Héroe (Ficha Verde)
+    // Ficha del Grupo de Aventureros
     ctx.fillStyle = "#89b4fa";
     ctx.beginPath();
     ctx.arc(playerPos.x * TILE_SIZE + 20, playerPos.y * TILE_SIZE + 20, 12, 0, Math.PI * 2);
@@ -70,20 +69,66 @@ export function drawDungeonMap() {
     ctx.stroke();
 }
 
-export function movePlayer(dx, dy, onEncounter) {
+// SISTEMA DEMOCRÁTICO DE RECUENTO DE VOTOS
+export function resolveDemocraticMove(votes) {
+    // votes = { "uid1": "UP", "uid2": "LEFT", "uid3": "LEFT" }
+    const voteCounts = { UP: 0, DOWN: 0, LEFT: 0, RIGHT: 0 };
+
+    Object.values(votes).forEach(dir => {
+        if (voteCounts[dir] !== undefined) {
+            voteCounts[dir]++;
+        }
+    });
+
+    // Encontrar la dirección o direcciones con más votos
+    let maxVotes = 0;
+    let winningDirections = [];
+
+    for (const [dir, count] of Object.entries(voteCounts)) {
+        if (count > maxVotes) {
+            maxVotes = count;
+            winningDirections = [dir];
+        } else if (count === maxVotes && count > 0) {
+            winningDirections.push(dir);
+        }
+    }
+
+    if (winningDirections.length === 0) return null;
+
+    // Si hay empate, elegir una dirección al azar entre las ganadoras
+    let selectedDirection = winningDirections[0];
+    let isTie = false;
+
+    if (winningDirections.length > 1) {
+        isTie = true;
+        const randomIndex = Math.floor(Math.random() * winningDirections.length);
+        selectedDirection = winningDirections[randomIndex];
+    }
+
+    // Convertir dirección a deltas (dx, dy)
+    let dx = 0, dy = 0;
+    if (selectedDirection === "UP") dy = -1;
+    if (selectedDirection === "DOWN") dy = 1;
+    if (selectedDirection === "LEFT") dx = -1;
+    if (selectedDirection === "RIGHT") dx = 1;
+
+    return { selectedDirection, dx, dy, isTie, maxVotes };
+}
+
+export function executeMove(dx, dy, onEncounter) {
     const newX = playerPos.x + dx;
     const newY = playerPos.y + dy;
 
-    // Verificar colisión con pared
+    // Validar si la casilla destino es una pared
     if (dungeonMap[newY] && dungeonMap[newY][newX] !== 1) {
         playerPos.x = newX;
         playerPos.y = newY;
         drawDungeonMap();
 
-        // Si pisó un enemigo (4)
+        // Si se entra en la casilla de un enemigo (4)
         if (dungeonMap[newY][newX] === 4) {
-            dungeonMap[newY][newX] = 0; // Quitar el enemigo del mapa
-            onEncounter(); // Disparar la transición a combate
+            dungeonMap[newY][newX] = 0; // Se remueve del mapa
+            onEncounter(); // Iniciar combate
         }
     }
 }

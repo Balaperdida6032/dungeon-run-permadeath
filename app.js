@@ -1,28 +1,46 @@
-import { drawDungeonMap, movePlayer, playerPos } from './map-system.js';
+import { drawDungeonMap, resolveDemocraticMove, executeMove } from './map-system.js';
 
-// Al comenzar la aventura desde la fogata, abrimos la vista del Mapa primero:
-document.getElementById('btn-start-adventure').addEventListener('click', async () => {
+// Registrar voto de dirección del usuario actual
+async function registerMoveVote(direction) {
     if (!currentRoomId) return;
     const roomRef = doc(db, "rooms", currentRoomId);
-    
-    // Cambiar vista al Mapa
-    switchScreen('screen-map');
-    drawDungeonMap();
+    const roomSnap = await getDoc(roomRef);
+    if (!roomSnap.exists()) return;
 
-    await updateDoc(roomRef, { status: "exploring" });
-});
+    const room = roomSnap.data();
+    const mapVotes = room.mapVotes || {};
+    mapVotes[currentUser.uid] = direction;
 
-// Controles de exploración
-document.getElementById('btn-move-up').addEventListener('click', () => handleMove(0, -1));
-document.getElementById('btn-move-down').addEventListener('click', () => handleMove(0, 1));
-document.getElementById('btn-move-left').addEventListener('click', () => handleMove(-1, 0));
-document.getElementById('btn-move-right').addEventListener('click', () => handleMove(1, 0));
+    const totalPlayers = Object.keys(room.players || {}).length;
+    const currentVotesCount = Object.keys(mapVotes).length;
 
-function handleMove(dx, dy) {
-    movePlayer(dx, dy, () => {
-        // Al encontrar un enemigo, cambiamos la vista a la Pantalla de Combate
-        showCustomModal("¡Un enemigo te ha emboscado en la mazmorra!", "⚔️ ¡ENCONTRAZO!", () => {
-            switchScreen('screen-dungeon');
-        });
-    });
+    // Si todos los jugadores de la sala ya votaron, procesamos la decisión democrática
+    if (currentVotesCount >= totalPlayers) {
+        const result = resolveDemocraticMove(mapVotes);
+        
+        let tieText = result.isTie ? " 🎲 ¡Había un empate y se decidió al azar!" : "";
+        showCustomModal(
+            `La party votó avanzar hacia: ${result.selectedDirection}.${tieText}`,
+            "🗳️ DECISIÓN DEMOCRÁTICA",
+            async () => {
+                // Limpiar los votos para el siguiente turno de movimiento
+                await updateDoc(roomRef, { mapVotes: {} });
+                
+                // Ejecutar el movimiento del grupo en el mapa
+                executeMove(result.dx, result.dy, () => {
+                    switchScreen('screen-dungeon');
+                });
+            }
+        );
+    } else {
+        // Guardar voto pendiente en Firestore y notificar que se espera al resto
+        await updateDoc(roomRef, { mapVotes });
+        showCustomModal(`Voto registrado (${direction}). Esperando que los demás miembros voten...`, "🗳️ VOTO REGISTRADO");
+    }
 }
+
+// Eventos para los botones del mapa
+document.getElementById('btn-move-up').addEventListener('click', () => registerMoveVote('UP'));
+document.getElementById('btn-move-down').addEventListener('click', () => registerMoveVote('DOWN'));
+document.getElementById('btn-move-left').addEventListener('click', () => registerMoveVote('LEFT'));
+document.getElementById('btn-move-right').addEventListener('click', () => registerMoveVote('RIGHT'));
