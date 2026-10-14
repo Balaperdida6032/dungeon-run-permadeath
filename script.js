@@ -1,4 +1,4 @@
-// script.js - Lógica principal con Fogata Cooperativa y Control de Host
+// script.js - Lógica principal con Sistema de Turnos Sincronizado
 import { 
     auth, db, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, signOut, onAuthStateChanged,
@@ -51,6 +51,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Auth Handlers
     document.getElementById('btn-login').addEventListener('click', async () => {
         const email = document.getElementById('auth-email').value;
         const pass = document.getElementById('auth-password').value;
@@ -220,8 +221,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const roomData = {
             host: currentUser.uid,
-            status: "campfire", // Estado inicial de fogata
+            status: "campfire",
             enemy: enemy,
+            turnOrder: [],
+            activeTurnIndex: 0,
             players: {
                 [currentUser.uid]: {
                     name: currentHero.name,
@@ -252,7 +255,6 @@ window.addEventListener('DOMContentLoaded', () => {
         const room = roomSnap.data();
         if (room.status !== "campfire") return showCustomModal("La partida ya ha comenzado.");
 
-        // Agregar jugador a la party en Firestore
         room.players[currentUser.uid] = {
             name: currentHero.name,
             clazz: currentHero.clazz,
@@ -276,7 +278,6 @@ window.addEventListener('DOMContentLoaded', () => {
             if (!docSnap.exists()) return;
             const room = docSnap.data();
 
-            // Si el host inició la aventura, saltamos todos a la pantalla de mazmorra
             if (room.status === "fighting") {
                 switchScreen('screen-dungeon');
                 document.getElementById('room-title').innerText = `MAZMORRA - SALA: ${roomCode}`;
@@ -313,7 +314,6 @@ window.addEventListener('DOMContentLoaded', () => {
         const isHost = (room.host === currentUser.uid);
         const startBtn = document.getElementById('btn-start-adventure');
 
-        // Solo el host puede empezar, y solo si hay al menos 1 jugador y todos están listos
         if (isHost && allReady && playerCount > 0) {
             startBtn.disabled = false;
             startBtn.style.opacity = "1";
@@ -323,7 +323,6 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Botón Marcarse como Listo
     document.getElementById('btn-toggle-ready').addEventListener('click', async () => {
         if (!currentRoomId) return;
         isReady = !isReady;
@@ -350,14 +349,23 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Botón de Host para Comenzar la Aventura
+    // Iniciar Aventura: Host define el orden de Turnos de los Héroes
     document.getElementById('btn-start-adventure').addEventListener('click', async () => {
         if (!currentRoomId) return;
         const roomRef = doc(db, "rooms", currentRoomId);
-        await updateDoc(roomRef, { status: "fighting" });
+        const roomSnap = await getDoc(roomRef);
+        if (!roomSnap.exists()) return;
+
+        const room = roomSnap.data();
+        const turnOrder = Object.keys(room.players); // Lista de UIDs de los jugadores
+
+        await updateDoc(roomRef, { 
+            status: "fighting",
+            turnOrder: turnOrder,
+            activeTurnIndex: 0
+        });
     });
 
-    // Abandonar Fogata
     document.getElementById('btn-leave-campfire').addEventListener('click', async () => {
         if (currentRoomId) {
             const roomRef = doc(db, "rooms", currentRoomId);
@@ -366,7 +374,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 const room = roomSnap.data();
                 if (room.players && room.players[currentUser.uid]) {
                     delete room.players[currentUser.uid];
-                    // Si era el host y ya no queda nadie, borramos la sala
                     if (room.host === currentUser.uid && Object.keys(room.players).length === 0) {
                         await deleteDoc(roomRef);
                     } else {
@@ -381,25 +388,38 @@ window.addEventListener('DOMContentLoaded', () => {
         await loadUserCharacters(currentUser.uid);
     });
 
+    // SISTEMA DE TURNOS Y RENDERIZADO DE MAZMORRA
     function updateDungeonUI(room) {
         const hasEnemy = room.enemy && room.enemy.hp > 0;
+        const turnOrder = room.turnOrder || [];
+        const activeTurnIndex = room.activeTurnIndex || 0;
+        const currentTurnUid = turnOrder[activeTurnIndex];
+        const isMyTurn = (currentTurnUid === currentUser.uid);
 
-        document.getElementById('btn-action-attack').disabled = !hasEnemy;
-        document.getElementById('btn-action-skill').disabled = !hasEnemy;
+        // Control estricto de habilitación de botones de acción
+        const canAct = hasEnemy && isMyTurn && currentHero.hp > 0;
+        document.getElementById('btn-action-attack').disabled = !canAct;
+        document.getElementById('btn-action-skill').disabled = !canAct;
+        document.getElementById('btn-action-potion').disabled = !canAct;
+        document.getElementById('btn-action-flee').disabled = !canAct;
 
-        // Renderizar todos los miembros de la party en mazmorra
+        // Renderizar Héroes y marcar de quién es el turno
         const partyListDiv = document.getElementById('party-members-list');
         partyListDiv.innerHTML = "";
         const players = room.players || {};
+
         for (const [uid, player] of Object.entries(players)) {
             const isMe = (uid === currentUser.uid);
             const hpToShow = isMe ? currentHero.hp : player.hp;
-            const maxHpToShow = currentHero.maxHp; // o del player si se sincroniza completo
+            const maxHpToShow = player.maxHp || 100;
             const playerHpPct = Math.max(0, (hpToShow / maxHpToShow) * 100);
+            const isPlayerTurn = (uid === currentTurnUid);
+            const turnBadge = isPlayerTurn ? ' <span style="color: #f9e2af; font-size: 10px;">⚡ [TURNO]</span>' : '';
+            const borderStyle = isPlayerTurn ? 'border: 2px solid #f9e2af;' : 'border: 2px solid #45475a;';
 
             partyListDiv.innerHTML += `
-                <div class="player-card-dungeon">
-                    <strong style="color: #a6e3a1;">${player.name} (${player.clazz}) ${isMe ? '(Tú)' : ''}</strong>
+                <div class="player-card-dungeon" style="${borderStyle}">
+                    <strong style="color: #a6e3a1;">${player.name} (${player.clazz}) ${isMe ? '(Tú)' : ''}</strong>${turnBadge}
                     <div class="hp-bar-container" style="margin-top: 5px;">
                         <div class="hp-bar-fill" style="width: ${playerHpPct}%;"></div>
                     </div>
@@ -408,6 +428,7 @@ window.addEventListener('DOMContentLoaded', () => {
             `;
         }
 
+        // Renderizar Enemigo
         const enemyImg = document.getElementById('enemy-portrait');
         if (hasEnemy) {
             const enemyHpPct = (room.enemy.hp / room.enemy.maxHp) * 100;
@@ -425,10 +446,12 @@ window.addEventListener('DOMContentLoaded', () => {
             if (enemyImg) enemyImg.style.display = 'none';
         }
 
+        // Historial de Combate
         const logContainer = document.getElementById('combat-log');
         logContainer.innerHTML = room.log.map(l => `> ${l}`).join('<br>');
         logContainer.scrollTop = logContainer.scrollHeight;
 
+        // Victoria
         if (room.enemy.hp <= 0 && room.status === "fighting") {
             room.status = "victory";
             const expReward = room.enemy.expReward || 50;
@@ -442,7 +465,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Ataque
+    // ACCIÓN: ATAQUE Y PASO DE TURNO
     document.getElementById('btn-action-attack').addEventListener('click', async () => {
         if (!currentRoomId) return;
         const roomRef = doc(db, "rooms", currentRoomId);
@@ -450,6 +473,14 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!roomSnap.exists()) return;
         
         const room = roomSnap.data();
+        const turnOrder = room.turnOrder || [];
+        const activeTurnIndex = room.activeTurnIndex || 0;
+
+        // Validar que realmente sea el turno del jugador
+        if (turnOrder[activeTurnIndex] !== currentUser.uid) {
+            return showCustomModal("Aún no es tu turno.");
+        }
+
         if (room.enemy.hp <= 0) return showCustomModal("No hay enemigo para atacar.");
 
         let statValue = currentHero.stats.str;
@@ -478,28 +509,28 @@ window.addEventListener('DOMContentLoaded', () => {
             room.log.push(`🛡️ ${currentHero.name} tiró ${d20Roll}+${statMod+proficiencyBonus}=${totalAttackRoll} vs CA ${room.enemy.ac}. El ataque es bloqueado.`);
         }
 
-        // Contraataque
-        if (room.enemy.hp > 0) {
+        // LÓGICA DE ROTACIÓN DE TURNO
+        let nextTurnIndex = (activeTurnIndex + 1) % turnOrder.length;
+
+        // Si la ronda volvió al inicio (siguiente índice es 0), le toca atacar al enemigo a la party
+        if (nextTurnIndex === 0 && room.enemy.hp > 0) {
             const enemyD20 = rollDice(20);
             const enemyAttackTotal = enemyD20 + room.enemy.attackBonus;
 
             if (enemyD20 !== 1 && (enemyD20 === 20 || enemyAttackTotal >= currentHero.stats.ac)) {
                 let enemyDamage = rollDice(room.enemy.damageDice) + 2;
                 if (enemyD20 === 20) enemyDamage += rollDice(room.enemy.damageDice);
+                
                 currentHero.hp -= enemyDamage;
-                room.log.push(`👹 ${room.enemy.name} ataca (Tirada: ${enemyAttackTotal} vs tu CA ${currentHero.stats.ac}) e inflige ${enemyDamage} de daño.`);
+                if (room.players[currentUser.uid]) room.players[currentUser.uid].hp = currentHero.hp;
+                room.log.push(`👹 ${room.enemy.name} contraataca (Tirada: ${enemyAttackTotal}) e inflige ${enemyDamage} de daño a la party.`);
             } else {
-                room.log.push(`🛡️ ${room.enemy.name} intenta atacarte (Tirada: ${enemyAttackTotal} vs tu CA ${currentHero.stats.ac}), pero falló.`);
-            }
-
-            // Actualizar vida local del player en el mapa de players de la sala
-            if (room.players && room.players[currentUser.uid]) {
-                room.players[currentUser.uid].hp = currentHero.hp;
+                room.log.push(`🛡️ ${room.enemy.name} intenta contraatacar pero su golpe es esquivado.`);
             }
 
             if (currentHero.hp <= 0) {
                 showCustomModal(
-                    `💀 ¡${currentHero.name} HA MUERTO! Este personaje ha sido borrado permanentemente de tus registros.`,
+                    `💀 ¡${currentHero.name} HA MUERTO! Tu personaje ha sido eliminado permanentemente.`,
                     "☠️ PERMADEATH",
                     async () => {
                         await deleteDoc(doc(db, "users", currentUser.uid, "characters", currentHeroId));
@@ -515,6 +546,8 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // Guardar el nuevo turno en Firestore
+        room.activeTurnIndex = nextTurnIndex;
         await updateDoc(roomRef, room);
     });
 
