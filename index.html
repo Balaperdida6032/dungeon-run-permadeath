@@ -28,16 +28,46 @@
             <h1>LOBBY DEL HÉROE</h1>
             <div id="hero-info" class="pixel-box"></div>
             
+            <!-- CREADOR DE HÉROE CON ASIGNACIÓN DE PUNTOS -->
             <div id="hero-creator" class="pixel-box" style="display:none;">
-                <h3>Crear Personaje</h3>
+                <h3>Forjar Nuevo Héroe</h3>
                 <input type="text" id="hero-name" placeholder="Nombre del Héroe">
-                <label for="hero-class">Clase:</label>
+                
+                <label for="hero-class">Clase Base:</label>
                 <select id="hero-class" class="pixel-select">
-                    <option value="Guerrero">Guerrero (STR y CA Alta)</option>
-                    <option value="Mago">Mago (INT y Daño Mágico)</option>
-                    <option value="Pícaro">Pícaro (DEX y Movilidad)</option>
+                    <option value="Guerrero">Guerrero (Especialista en Fuerza)</option>
+                    <option value="Mago">Mago (Especialista en Inteligencia)</option>
+                    <option value="Pícaro">Pícaro (Especialista en Destreza)</option>
                 </select>
-                <button id="btn-create-hero">Forjar Héroe</button>
+
+                <div class="pixel-box" style="margin-top: 10px; background: #11111b;">
+                    <p style="color: #f9e2af; margin-top: 0;">Puntos Libres: <span id="stat-points-left">5</span></p>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>STR (Fuerza): <strong id="stat-str">10</strong></span>
+                            <div>
+                                <button type="button" id="btn-str-minus" style="width: 30px; padding: 4px;">-</button>
+                                <button type="button" id="btn-str-plus" style="width: 30px; padding: 4px;">+</button>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>DEX (Destreza): <strong id="stat-dex">10</strong></span>
+                            <div>
+                                <button type="button" id="btn-dex-minus" style="width: 30px; padding: 4px;">-</button>
+                                <button type="button" id="btn-dex-plus" style="width: 30px; padding: 4px;">+</button>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>INT (Inteligencia): <strong id="stat-int">10</strong></span>
+                            <div>
+                                <button type="button" id="btn-int-minus" style="width: 30px; padding: 4px;">-</button>
+                                <button type="button" id="btn-int-plus" style="width: 30px; padding: 4px;">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="btn-create-hero">Confirmar y Entrar</button>
             </div>
 
             <div class="pixel-box" id="party-section">
@@ -53,10 +83,12 @@
         <div id="screen-dungeon" class="screen">
             <h2 id="room-title">MAZMORRA - SALA</h2>
             <div class="flex-row">
+                <!-- HÉROES Y VIDA DEL JUGADOR -->
                 <div class="pixel-box" style="flex:1;">
                     <h3>Héroes en la Party</h3>
                     <div id="party-members-list"></div>
                 </div>
+                <!-- ENEMIGO -->
                 <div class="pixel-box" style="flex:1; text-align:center;">
                     <h3>Enemigo</h3>
                     <img id="enemy-portrait" src="" alt="Enemigo Pixel Art" style="width: 80px; height: 80px; image-rendering: pixelated; margin: 0 auto 10px auto; display:none;">
@@ -76,9 +108,17 @@
                 <button id="btn-action-flee" style="background-color: #fab387; color:#111;">🏃‍♂️ Huir / Extraerse</button>
             </div>
         </div>
+
+        <!-- MODAL PERSONALIZADO RETRO -->
+        <div id="custom-modal" class="modal-overlay" style="display:none;">
+            <div class="modal-content pixel-box">
+                <h3 id="modal-title" style="margin-top:0; color:#f9e2af;">MENSAJE</h3>
+                <p id="modal-message" style="line-height:1.6; margin-bottom: 20px;"></p>
+                <button id="btn-modal-close">Aceptar</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Script Principal como Módulo ES6 -->
     <script type="module" src="script.js"></script>
 </body>
 </html>
