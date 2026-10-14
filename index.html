@@ -3,167 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dungeon Run: Permadeath</title>
+    <title>Dungeon Run: Permadeath Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-    <div id="game-container">
-        <!-- PANTALLA 1: AUTENTICACIÓN -->
-        <div id="screen-auth" class="screen active-screen">
-            <h1>DUNGEON RUN:<br>PERMADEATH</h1>
-            <div class="pixel-box">
-                <h3>Iniciar Sesión</h3>
-                <input type="email" id="auth-email" placeholder="Correo electrónico">
-                <input type="password" id="auth-password" placeholder="Contraseña">
-                <button id="btn-login">Entrar con Email</button>
-                <button id="btn-register">Registrarse</button>
-                <button id="btn-google" style="background-color: #cb4b16;">Entrar con Google</button>
+    <div id="dashboard-layout">
+        <!-- NAVBAR / SIDEBAR LATERAL IZQUIERDO -->
+        <nav id="sidebar" class="sidebar-hidden">
+            <div class="sidebar-header">
+                <h2>DUNGEON RUN</h2>
             </div>
-        </div>
+            <ul class="sidebar-menu">
+                <li><button id="nav-lobby" class="nav-btn active-nav">🏰 Lobby / Jugar</button></li>
+                <li><button id="nav-profile" class="nav-btn">👤 Perfil & Metas</button></li>
+            </ul>
+            <div class="sidebar-footer">
+                <button id="btn-logout" style="background-color: #f38ba8; color:#111;">🚪 Cerrar Sesión</button>
+            </div>
+        </nav>
 
-        <!-- PANTALLA 2: LOBBY / PROGRESO DE CUENTA Y SELECCIÓN -->
-        <div id="screen-lobby" class="screen">
-            <h1>LOBBY DE LA CUENTA</h1>
+        <!-- CONTENIDO PRINCIPAL -->
+        <main id="main-content">
             
-            <!-- PANEL DE PROGRESO DE CUENTA PERMANENTE -->
-            <div class="pixel-box" style="border-color: #f9e2af; background-color: #1e1e2e;">
-                <h3 style="color: #f9e2af; margin-top:0;">🌟 NIVEL DE CUENTA: <span id="account-level">1</span></h3>
-                <div class="hp-bar-container" style="height: 12px; margin: 8px 0;">
-                    <div id="account-exp-bar" class="hp-bar-fill" style="background-color: #f9e2af; width: 0%;"></div>
-                </div>
-                <small id="account-exp-text" style="color: #cdd6f4;">EXP Cuenta: 0 / 200</small>
-                
-                <div style="margin-top: 10px; font-size: 9px; line-height: 1.5; color: #a6e3a1;">
-                    <strong>Mejoras Activas de Cuenta:</strong>
-                    <div id="account-perks-list">Cargando pasivas...</div>
+            <!-- PANTALLA 1: AUTENTICACIÓN -->
+            <div id="screen-auth" class="screen active-screen">
+                <h1>DUNGEON RUN:<br>PERMADEATH</h1>
+                <div class="pixel-box" style="max-width: 400px; margin: 0 auto;">
+                    <h3>Iniciar Sesión</h3>
+                    <input type="email" id="auth-email" placeholder="Correo electrónico">
+                    <input type="password" id="auth-password" placeholder="Contraseña">
+                    <button id="btn-login">Entrar con Email</button>
+                    <button id="btn-register">Registrarse</button>
+                    <button id="btn-google" style="background-color: #cb4b16;">Entrar con Google</button>
                 </div>
             </div>
 
-            <div class="pixel-box">
-                <h3>Tus Personajes</h3>
-                <div id="character-list" style="margin-bottom: 15px;">
-                    <p style="color: #6c7086;">Cargando personajes...</p>
-                </div>
-                <button id="btn-show-creator" style="background-color: #a6e3a1; color: #111;">+ Forjar Nuevo Héroe</button>
-            </div>
-
-            <!-- CREADOR DE HÉROE -->
-            <div id="hero-creator" class="pixel-box" style="display:none;">
-                <h3>Forjar Nuevo Héroe</h3>
-                <input type="text" id="hero-name" placeholder="Nombre del Héroe">
+            <!-- PANTALLA 2: LOBBY PRINCIPAL -->
+            <div id="screen-lobby" class="screen">
+                <h1>LOBBY DE AVENTURA</h1>
                 
-                <label for="hero-class">Clase Base:</label>
-                <select id="hero-class" class="pixel-select">
-                    <option value="Guerrero">Guerrero (Especialista en Fuerza)</option>
-                    <option value="Mago">Mago (Especialista en Inteligencia)</option>
-                    <option value="Pícaro">Pícaro (Especialista en Destreza)</option>
-                </select>
+                <div class="pixel-box">
+                    <h3>Tus Personajes</h3>
+                    <div id="character-list" style="margin-bottom: 15px;">
+                        <p style="color: #6c7086;">Cargando personajes...</p>
+                    </div>
+                    <button id="btn-show-creator" style="background-color: #a6e3a1; color: #111;">+ Forjar Nuevo Héroe</button>
+                </div>
 
-                <div class="pixel-box" style="margin-top: 10px; background: #11111b;">
-                    <p style="color: #f9e2af; margin-top: 0;">Puntos Libres: <span id="stat-points-left">5</span></p>
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span>STR: <strong id="stat-str">10</strong></span>
-                            <div>
-                                <button type="button" id="btn-str-minus" style="width: 30px; padding: 4px;">-</button>
-                                <button type="button" id="btn-str-plus" style="width: 30px; padding: 4px;">+</button>
+                <!-- CREADOR DE HÉROE -->
+                <div id="hero-creator" class="pixel-box" style="display:none;">
+                    <h3>Forjar Nuevo Héroe</h3>
+                    <input type="text" id="hero-name" placeholder="Nombre del Héroe">
+                    
+                    <label for="hero-class">Clase Base:</label>
+                    <select id="hero-class" class="pixel-select">
+                        <option value="Guerrero">Guerrero (Especialista en Fuerza)</option>
+                        <option value="Mago">Mago (Especialista en Inteligencia)</option>
+                        <option value="Pícaro">Pícaro (Especialista en Destreza)</option>
+                    </select>
+
+                    <div class="pixel-box" style="margin-top: 10px; background: #11111b;">
+                        <p style="color: #f9e2af; margin-top: 0;">Puntos Libres: <span id="stat-points-left">5</span></p>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>STR: <strong id="stat-str">10</strong></span>
+                                <div>
+                                    <button type="button" id="btn-str-minus" style="width: 30px; padding: 4px;">-</button>
+                                    <button type="button" id="btn-str-plus" style="width: 30px; padding: 4px;">+</button>
+                                </div>
                             </div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span>DEX: <strong id="stat-dex">10</strong></span>
-                            <div>
-                                <button type="button" id="btn-dex-minus" style="width: 30px; padding: 4px;">-</button>
-                                <button type="button" id="btn-dex-plus" style="width: 30px; padding: 4px;">+</button>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>DEX: <strong id="stat-dex">10</strong></span>
+                                <div>
+                                    <button type="button" id="btn-dex-minus" style="width: 30px; padding: 4px;">-</button>
+                                    <button type="button" id="btn-dex-plus" style="width: 30px; padding: 4px;">+</button>
+                                </div>
                             </div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span>INT: <strong id="stat-int">10</strong></span>
-                            <div>
-                                <button type="button" id="btn-int-minus" style="width: 30px; padding: 4px;">-</button>
-                                <button type="button" id="btn-int-plus" style="width: 30px; padding: 4px;">+</button>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>INT: <strong id="stat-int">10</strong></span>
+                                <div>
+                                    <button type="button" id="btn-int-minus" style="width: 30px; padding: 4px;">-</button>
+                                    <button type="button" id="btn-int-plus" style="width: 30px; padding: 4px;">+</button>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <button id="btn-create-hero">Guardar Personaje</button>
+                    <button id="btn-cancel-creator" style="background-color: #f38ba8; color:#111;">Cancelar</button>
                 </div>
 
-                <button id="btn-create-hero">Guardar Personaje</button>
-                <button id="btn-cancel-creator" style="background-color: #f38ba8; color:#111;">Cancelar</button>
-            </div>
-
-            <div class="pixel-box" id="party-section" style="display:none;">
-                <h3>Mazmorra Multijugador</h3>
-                <p id="active-hero-display" style="color: #a6e3a1; margin-bottom: 15px;"></p>
-                <input type="text" id="room-code-input" placeholder="Código de Sala (Ej: AB12)">
-                <button id="btn-create-room">Crear Nueva Sala</button>
-                <button id="btn-join-room">Unirse a Sala</button>
-                <button id="btn-change-hero" style="background-color: #fab387; color:#111; margin-top: 10px;">Cambiar de Personaje</button>
-            </div>
-
-            <button id="btn-logout" style="background-color: #f38ba8; color:#111; margin-top: 20px;">Cerrar Sesión</button>
-        </div>
-
-        <!-- PANTALLA 3: LA FOGATA -->
-        <div id="screen-campfire" class="screen">
-            <h1 style="color: #fab387;">🔥 CAMPAMENTO - FOGATA 🔥</h1>
-            <div class="pixel-box" style="text-align: center;">
-                <h3>CÓDIGO DE SALA</h3>
-                <h2 id="campfire-room-code" style="color: #a6e3a1; font-size: 24px; letter-spacing: 3px;">----</h2>
-                <p style="font-size: 9px; color: #6c7086;">Comparte este código con tus compañeros para que se unan a la fogata.</p>
-            </div>
-
-            <div class="pixel-box">
-                <h3>Aventureros Descansando</h3>
-                <div id="campfire-party-list"></div>
-            </div>
-
-            <div class="pixel-box" style="text-align: center;">
-                <button id="btn-toggle-ready" style="background-color: #f9e2af; color: #111; margin-bottom: 15px;">⏳ Marcarme como LISTO</button>
-                <button id="btn-start-adventure" disabled style="background-color: #a6e3a1; color: #111;">⚔️ Comenzar Aventura</button>
-                <button id="btn-leave-campfire" style="background-color: #f38ba8; color: #111; margin-top: 10px;">🚪 Abandonar Sala</button>
-            </div>
-        </div>
-
-        <!-- PANTALLA 4: MAZMORRA -->
-        <div id="screen-dungeon" class="screen">
-            <h2 id="room-title">MAZMORRA - SALA</h2>
-            <div class="flex-row">
-                <div class="pixel-box" style="flex:1;">
-                    <h3>Héroes en la Party</h3>
-                    <div id="party-members-list"></div>
-                </div>
-                <div class="pixel-box" style="flex:1; text-align:center;">
-                    <h3>Enemigo</h3>
-                    <img id="enemy-portrait" src="" alt="Enemigo Pixel Art" style="width: 80px; height: 80px; image-rendering: pixelated; margin: 0 auto 10px auto; display:none;">
-                    <div id="enemy-name" class="text-warning">Cargando...</div>
-                    <div class="hp-bar-container"><div id="enemy-hp-bar" class="hp-bar-fill"></div></div>
-                    <span id="enemy-hp-text">HP: --/--</span>
+                <div class="pixel-box" id="party-section" style="display:none;">
+                    <h3>Mazmorra Multijugador</h3>
+                    <p id="active-hero-display" style="color: #a6e3a1; margin-bottom: 15px;"></p>
+                    <input type="text" id="room-code-input" placeholder="Código de Sala (Ej: AB12)">
+                    <button id="btn-create-room">Crear Nueva Sala</button>
+                    <button id="btn-join-room">Unirse a Sala</button>
+                    <button id="btn-change-hero" style="background-color: #fab387; color:#111; margin-top: 10px;">Cambiar de Personaje</button>
                 </div>
             </div>
 
-            <div id="combat-log"></div>
+            <!-- PANTALLA DE PERFIL Y CAMINO DE NIVELES (SCROLL HORIZONTAL) -->
+            <div id="screen-profile" class="screen">
+                <h1>PERFIL Y PROGRESIÓN</h1>
 
-            <div class="pixel-box" id="combat-actions">
-                <h3>Tus Acciones</h3>
-                <button id="btn-action-attack">⚔️ Atacar</button>
-                <button id="btn-action-skill">✨ Habilidad Especial</button>
-                <button id="btn-action-potion">🧪 Usar Poción (<span id="potion-count">0</span>)</button>
-                <button id="btn-action-flee" style="background-color: #fab387; color:#111;">🏃‍♂️ Huir / Extraerse</button>
-            </div>
-        </div>
+                <div class="pixel-box" style="border-color: #f9e2af; background-color: #1e1e2e;">
+                    <h3 style="color: #f9e2af; margin-top:0;">🌟 NIVEL DE CUENTA: <span id="account-level">1</span></h3>
+                    <div class="hp-bar-container" style="height: 14px; margin: 8px 0;">
+                        <div id="account-exp-bar" class="hp-bar-fill" style="background-color: #f9e2af; width: 0%;"></div>
+                    </div>
+                    <small id="account-exp-text" style="color: #cdd6f4;">EXP Cuenta: 0 / 200</small>
+                </div>
 
-        <!-- MODAL PERSONALIZADO -->
-        <div id="custom-modal" class="modal-overlay" style="display:none;">
-            <div class="modal-content pixel-box">
-                <h3 id="modal-title" style="margin-top:0; color:#f9e2af;">MENSAJE</h3>
-                <p id="modal-message" style="line-height:1.6; margin-bottom: 20px;"></p>
-                <button id="btn-modal-close">Aceptar</button>
+                <div class="pixel-box">
+                    <h3>🏆 Camino de Recompensas (Rogue-lite)</h3>
+                    <p style="font-size: 9px; color: #a6e3a1; margin-bottom: 15px;">Desliza horizontalmente para ver las ventajas que desbloqueas al subir de nivel:</p>
+                    
+                    <!-- CONTENEDOR CON SCROLL HORIZONTAL DE NIVELES -->
+                    <div id="level-road-container">
+                        <div id="level-road">
+                            <!-- Los nodos de nivel se generan dinámicamente con JS -->
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <!-- PANTALLA LA FOGATA -->
+            <div id="screen-campfire" class="screen">
+                <h1 style="color: #fab387;">🔥 CAMPAMENTO - FOGATA 🔥</h1>
+                <div class="pixel-box" style="text-align: center;">
+                    <h3>CÓDIGO DE SALA</h3>
+                    <h2 id="campfire-room-code" style="color: #a6e3a1; font-size: 24px; letter-spacing: 3px;">----</h2>
+                </div>
+
+                <div class="pixel-box">
+                    <h3>Aventureros Descansando</h3>
+                    <div id="campfire-party-list"></div>
+                </div>
+
+                <div class="pixel-box" style="text-align: center;">
+                    <button id="btn-toggle-ready" style="background-color: #f9e2af; color: #111; margin-bottom: 15px;">⏳ Marcarme como LISTO</button>
+                    <button id="btn-start-adventure" disabled style="background-color: #a6e3a1; color: #111;">⚔️ Comenzar Aventura</button>
+                    <button id="btn-leave-campfire" style="background-color: #f38ba8; color: #111; margin-top: 10px;">🚪 Abandonar Sala</button>
+                </div>
+            </div>
+
+            <!-- PANTALLA MAZMORRA -->
+            <div id="screen-dungeon" class="screen">
+                <h2 id="room-title">MAZMORRA - SALA</h2>
+                <div class="flex-row">
+                    <div class="pixel-box" style="flex:1;">
+                        <h3>Héroes en la Party</h3>
+                        <div id="party-members-list"></div>
+                    </div>
+                    <div class="pixel-box" style="flex:1; text-align:center;">
+                        <h3>Enemigo</h3>
+                        <img id="enemy-portrait" src="" alt="Enemigo Pixel Art" style="width: 80px; height: 80px; image-rendering: pixelated; margin: 0 auto 10px auto; display:none;">
+                        <div id="enemy-name" class="text-warning">Cargando...</div>
+                        <div class="hp-bar-container"><div id="enemy-hp-bar" class="hp-bar-fill"></div></div>
+                        <span id="enemy-hp-text">HP: --/--</span>
+                    </div>
+                </div>
+
+                <div id="combat-log"></div>
+
+                <div class="pixel-box" id="combat-actions">
+                    <h3>Tus Acciones</h3>
+                    <button id="btn-action-attack">⚔️ Atacar</button>
+                    <button id="btn-action-skill">✨ Habilidad Especial</button>
+                    <button id="btn-action-potion">🧪 Usar Poción (<span id="potion-count">0</span>)</button>
+                    <button id="btn-action-flee" style="background-color: #fab387; color:#111;">🏃‍♂️ Huir / Extraerse</button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- MODAL PERSONALIZADO -->
+    <div id="custom-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-content pixel-box">
+            <h3 id="modal-title" style="margin-top:0; color:#f9e2af;">MENSAJE</h3>
+            <p id="modal-message" style="line-height:1.6; margin-bottom: 20px;"></p>
+            <button id="btn-modal-close">Aceptar</button>
         </div>
     </div>
 
-    <!-- Script Principal como Módulo ES6 apuntando a app.js -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
