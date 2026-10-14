@@ -1,8 +1,8 @@
-// script.js - Lógica principal del Juego y UI
+// script.js - Lógica principal con Fogata Cooperativa y Control de Host
 import { 
     auth, db, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, signOut, onAuthStateChanged,
-    doc, setDoc, getDoc, updateDoc, onSnapshot, deleteDoc 
+    doc, setDoc, getDoc, updateDoc, onSnapshot, deleteDoc, collection, addDoc, getDocs 
 } from './firebase-config.js';
 
 import { 
@@ -10,16 +10,16 @@ import {
 } from './dnd-mechanics.js';
 
 let currentUser = null;
+let currentHeroId = null;
 let currentHero = null;
 let currentRoomId = null;
 let unsubscribeRoom = null;
+let isReady = false;
 
-// Puntos de estatísticas configurables en creación
 let availablePoints = 5;
 let customStats = { str: 10, dex: 10, int: 10 };
 let baseStats = { str: 10, dex: 10, int: 10 };
 
-// Función para mostrar el modal personalizado
 function showCustomModal(message, title = "DUNGEON RUN", callback = null) {
     const modal = document.getElementById('custom-modal');
     document.getElementById('modal-title').innerText = title;
@@ -42,15 +42,15 @@ window.addEventListener('DOMContentLoaded', () => {
         if (user) {
             currentUser = user;
             switchScreen('screen-lobby');
-            await loadHeroData(user.uid);
+            await loadUserCharacters(user.uid);
         } else {
             currentUser = null;
             currentHero = null;
+            currentHeroId = null;
             switchScreen('screen-auth');
         }
     });
 
-    // Auth Handlers
     document.getElementById('btn-login').addEventListener('click', async () => {
         const email = document.getElementById('auth-email').value;
         const pass = document.getElementById('auth-password').value;
@@ -75,7 +75,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
-    // Lógica del Creador de Héroes con Puntos Libres
+    // UI del Creador
     const classSelect = document.getElementById('hero-class');
     
     function updateStatUI() {
@@ -88,7 +88,7 @@ window.addEventListener('DOMContentLoaded', () => {
     function resetStatsForClass(clazz) {
         if (clazz === "Guerrero") baseStats = { str: 14, dex: 12, int: 8 };
         else if (clazz === "Mago") baseStats = { str: 8, dex: 12, int: 14 };
-        else baseStats = { str: 10, dex: 14, int: 10 }; // Pícaro
+        else baseStats = { str: 10, dex: 14, int: 10 };
 
         customStats = { ...baseStats };
         availablePoints = 5;
@@ -100,7 +100,6 @@ window.addEventListener('DOMContentLoaded', () => {
         resetStatsForClass("Guerrero");
     }
 
-    // Botones de incremento/decremento
     setupStatButton('str');
     setupStatButton('dex');
     setupStatButton('int');
@@ -123,73 +122,126 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    async function loadHeroData(uid) {
-        const heroDocRef = doc(db, "heroes", uid);
-        const heroSnap = await getDoc(heroDocRef);
-        const heroInfoDiv = document.getElementById('hero-info');
-        const heroCreatorDiv = document.getElementById('hero-creator');
+    document.getElementById('btn-show-creator').addEventListener('click', () => {
+        document.getElementById('hero-creator').style.display = 'block';
+        document.getElementById('btn-show-creator').style.display = 'none';
+        document.getElementById('party-section').style.display = 'none';
+        resetStatsForClass("Guerrero");
+    });
 
-        if (heroSnap.exists()) {
-            currentHero = heroSnap.data();
-            heroCreatorDiv.style.display = 'none';
-            
-            if (!currentHero.stats) {
-                currentHero.stats = { str: 12, dex: 12, int: 12, ac: 13 };
-            }
+    document.getElementById('btn-cancel-creator').addEventListener('click', () => {
+        document.getElementById('hero-creator').style.display = 'none';
+        document.getElementById('btn-show-creator').style.display = 'block';
+        if (currentHero) document.getElementById('party-section').style.display = 'block';
+    });
 
-            heroInfoDiv.innerHTML = `
-                <h3>Héroe: ${currentHero.name}</h3>
-                <p>Clase: ${currentHero.clazz} | Nivel: ${currentHero.level} | CA: ${currentHero.stats.ac}</p>
-                <p>STR: ${currentHero.stats.str} | DEX: ${currentHero.stats.dex} | INT: ${currentHero.stats.int}</p>
-                <p>HP: ❤️ ${currentHero.hp}/${currentHero.maxHp} | EXP: ${currentHero.exp}/${currentHero.level * 100} | Oro: 🪙 ${currentHero.gold}</p>
-            `;
-            document.getElementById('potion-count').innerText = currentHero.potions || 0;
-        } else {
-            heroCreatorDiv.style.display = 'block';
-            heroInfoDiv.innerHTML = `<p class="text-danger">¡No tienes héroe activo! Si moriste, forja uno nuevo.</p>`;
-            resetStatsForClass("Guerrero");
+    async function loadUserCharacters(uid) {
+        const charactersRef = collection(db, "users", uid, "characters");
+        const snapshot = await getDocs(charactersRef);
+        const listDiv = document.getElementById('character-list');
+        listDiv.innerHTML = "";
+        
+        if (snapshot.empty) {
+            listDiv.innerHTML = `<p style="color: #fab387;">No tienes personajes creados. ¡Forja uno!</p>`;
+            document.getElementById('hero-creator').style.display = 'block';
+            document.getElementById('btn-show-creator').style.display = 'none';
+            document.getElementById('party-section').style.display = 'none';
+            return;
         }
+
+        snapshot.forEach((docSnap) => {
+            const hero = docSnap.data();
+            const heroId = docSnap.id;
+            
+            const btn = document.createElement('button');
+            btn.innerHTML = `⚔️ ${hero.name} (${hero.clazz}) - Nivel ${hero.level} [HP: ${hero.hp}/${hero.maxHp}]`;
+            btn.style.marginBottom = "10px";
+            btn.style.backgroundColor = "#313244";
+            btn.style.color = "#cdd6f4";
+            
+            btn.addEventListener('click', () => selectCharacter(heroId, hero));
+            listDiv.appendChild(btn);
+        });
     }
+
+    function selectCharacter(heroId, heroData) {
+        currentHeroId = heroId;
+        currentHero = heroData;
+
+        document.getElementById('hero-creator').style.display = 'none';
+        document.getElementById('btn-show-creator').style.display = 'none';
+        document.getElementById('party-section').style.display = 'block';
+
+        document.getElementById('active-hero-display').innerHTML = `
+            <strong>Héroe Seleccionado:</strong> ${currentHero.name} (${currentHero.clazz})<br>
+            Nivel: ${currentHero.level} | HP: ❤️ ${currentHero.hp}/${currentHero.maxHp} | Oro: 🪙 ${currentHero.gold}
+        `;
+    }
+
+    document.getElementById('btn-change-hero').addEventListener('click', () => {
+        currentHero = null;
+        currentHeroId = null;
+        document.getElementById('party-section').style.display = 'none';
+        document.getElementById('btn-show-creator').style.display = 'block';
+        loadUserCharacters(currentUser.uid);
+    });
 
     document.getElementById('btn-create-hero').addEventListener('click', async () => {
         const name = document.getElementById('hero-name').value.trim();
         const clazz = classSelect.value;
         if (!name) return showCustomModal("Escribe un nombre para tu héroe.");
 
-        // Calcular Clase de Armadura (CA) base según Destreza
         const dexMod = getStatModifier(customStats.dex);
         let ac = 10 + dexMod;
-        if (clazz === "Guerrero") ac += 4; // Armadura de cota de malla
-        else if (clazz === "Pícaro") ac += 2; // Armadura de cuero
+        if (clazz === "Guerrero") ac += 4;
+        else if (clazz === "Pícaro") ac += 2;
 
         const newHero = {
             name, clazz, level: 1, exp: 0, gold: 50, hp: 100, maxHp: 100, potions: 3,
             stats: { ...customStats, ac }
         };
 
-        await setDoc(doc(db, "heroes", currentUser.uid), newHero);
-        await loadHeroData(currentUser.uid);
+        const charactersRef = collection(db, "users", currentUser.uid, "characters");
+        const docRef = await addDoc(charactersRef, newHero);
+        
+        showCustomModal(`¡Personaje ${name} forjado con éxito!`, "✨ HÉROE CREADO", () => {
+            document.getElementById('hero-name').value = "";
+            document.getElementById('hero-creator').style.display = 'none';
+            selectCharacter(docRef.id, newHero);
+        });
     });
 
+    // CREAR SALA (FOGATA)
     document.getElementById('btn-create-room').addEventListener('click', async () => {
-        if (!currentHero) return showCustomModal("Necesitas forjar un héroe primero.");
+        if (!currentHero) return showCustomModal("Selecciona un personaje primero.");
         const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
         
         const enemy = getRandomEnemyForLevel(currentHero.level);
 
         const roomData = {
             host: currentUser.uid,
-            status: "fighting",
+            status: "campfire", // Estado inicial de fogata
             enemy: enemy,
+            players: {
+                [currentUser.uid]: {
+                    name: currentHero.name,
+                    clazz: currentHero.clazz,
+                    hp: currentHero.hp,
+                    maxHp: currentHero.maxHp,
+                    ready: false
+                }
+            },
             log: [enemy.introText]
         };
 
         await setDoc(doc(db, "rooms", roomCode), roomData);
-        joinRoomListener(roomCode);
+        isReady = false;
+        joinCampfireListener(roomCode);
     });
 
+    // UNIRSE A SALA (FOGATA)
     document.getElementById('btn-join-room').addEventListener('click', async () => {
-        if (!currentHero) return showCustomModal("Necesitas forjar un héroe primero.");
+        if (!currentHero) return showCustomModal("Selecciona un personaje primero.");
         const code = document.getElementById('room-code-input').value.trim().toUpperCase();
         if (!code) return showCustomModal("Introduce un código de sala válido.");
 
@@ -197,20 +249,137 @@ window.addEventListener('DOMContentLoaded', () => {
         const roomSnap = await getDoc(roomRef);
         if (!roomSnap.exists()) return showCustomModal("La sala no existe.");
 
-        joinRoomListener(code);
+        const room = roomSnap.data();
+        if (room.status !== "campfire") return showCustomModal("La partida ya ha comenzado.");
+
+        // Agregar jugador a la party en Firestore
+        room.players[currentUser.uid] = {
+            name: currentHero.name,
+            clazz: currentHero.clazz,
+            hp: currentHero.hp,
+            maxHp: currentHero.maxHp,
+            ready: false
+        };
+
+        await updateDoc(roomRef, { players: room.players });
+        isReady = false;
+        joinCampfireListener(code);
     });
 
-    function joinRoomListener(roomCode) {
+    function joinCampfireListener(roomCode) {
         currentRoomId = roomCode;
-        switchScreen('screen-dungeon');
-        document.getElementById('room-title').innerText = `MAZMORRA - SALA: ${roomCode}`;
+        switchScreen('screen-campfire');
+        document.getElementById('campfire-room-code').innerText = roomCode;
+        updateReadyButtonUI();
 
         unsubscribeRoom = onSnapshot(doc(db, "rooms", roomCode), async (docSnap) => {
             if (!docSnap.exists()) return;
             const room = docSnap.data();
-            updateDungeonUI(room);
+
+            // Si el host inició la aventura, saltamos todos a la pantalla de mazmorra
+            if (room.status === "fighting") {
+                switchScreen('screen-dungeon');
+                document.getElementById('room-title').innerText = `MAZMORRA - SALA: ${roomCode}`;
+                updateDungeonUI(room);
+                return;
+            }
+
+            updateCampfireUI(room);
         });
     }
+
+    function updateCampfireUI(room) {
+        const partyListDiv = document.getElementById('campfire-party-list');
+        const players = room.players || {};
+        let allReady = true;
+        let playerCount = 0;
+
+        partyListDiv.innerHTML = "";
+        for (const [uid, player] of Object.entries(players)) {
+            playerCount++;
+            const readyText = player.ready ? "🟢 LISTO" : "⏳ Esperando...";
+            const readyColor = player.ready ? "#a6e3a1" : "#fab387";
+
+            partyListDiv.innerHTML += `
+                <div class="player-card-dungeon" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>⚔️ <strong>${player.name}</strong> (${player.clazz}) ${uid === room.host ? '👑 [Host]' : ''}</span>
+                    <span style="color: ${readyColor}; font-weight: bold;">${readyText}</span>
+                </div>
+            `;
+
+            if (!player.ready) allReady = false;
+        }
+
+        const isHost = (room.host === currentUser.uid);
+        const startBtn = document.getElementById('btn-start-adventure');
+
+        // Solo el host puede empezar, y solo si hay al menos 1 jugador y todos están listos
+        if (isHost && allReady && playerCount > 0) {
+            startBtn.disabled = false;
+            startBtn.style.opacity = "1";
+        } else {
+            startBtn.disabled = true;
+            startBtn.style.opacity = "0.5";
+        }
+    }
+
+    // Botón Marcarse como Listo
+    document.getElementById('btn-toggle-ready').addEventListener('click', async () => {
+        if (!currentRoomId) return;
+        isReady = !isReady;
+        const roomRef = doc(db, "rooms", currentRoomId);
+        const roomSnap = await getDoc(roomRef);
+        if (!roomSnap.exists()) return;
+
+        const room = roomSnap.data();
+        if (room.players && room.players[currentUser.uid]) {
+            room.players[currentUser.uid].ready = isReady;
+            await updateDoc(roomRef, { players: room.players });
+            updateReadyButtonUI();
+        }
+    });
+
+    function updateReadyButtonUI() {
+        const btn = document.getElementById('btn-toggle-ready');
+        if (isReady) {
+            btn.innerText = "✅ ¡ESTÁS LISTO!";
+            btn.style.backgroundColor = "#a6e3a1";
+        } else {
+            btn.innerText = "⏳ Marcarme como LISTO";
+            btn.style.backgroundColor = "#f9e2af";
+        }
+    }
+
+    // Botón de Host para Comenzar la Aventura
+    document.getElementById('btn-start-adventure').addEventListener('click', async () => {
+        if (!currentRoomId) return;
+        const roomRef = doc(db, "rooms", currentRoomId);
+        await updateDoc(roomRef, { status: "fighting" });
+    });
+
+    // Abandonar Fogata
+    document.getElementById('btn-leave-campfire').addEventListener('click', async () => {
+        if (currentRoomId) {
+            const roomRef = doc(db, "rooms", currentRoomId);
+            const roomSnap = await getDoc(roomRef);
+            if (roomSnap.exists()) {
+                const room = roomSnap.data();
+                if (room.players && room.players[currentUser.uid]) {
+                    delete room.players[currentUser.uid];
+                    // Si era el host y ya no queda nadie, borramos la sala
+                    if (room.host === currentUser.uid && Object.keys(room.players).length === 0) {
+                        await deleteDoc(roomRef);
+                    } else {
+                        await updateDoc(roomRef, { players: room.players });
+                    }
+                }
+            }
+        }
+        if (unsubscribeRoom) unsubscribeRoom();
+        currentRoomId = null;
+        switchScreen('screen-lobby');
+        await loadUserCharacters(currentUser.uid);
+    });
 
     function updateDungeonUI(room) {
         const hasEnemy = room.enemy && room.enemy.hp > 0;
@@ -218,22 +387,27 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('btn-action-attack').disabled = !hasEnemy;
         document.getElementById('btn-action-skill').disabled = !hasEnemy;
 
-        // Renderizar Vida del Jugador Actual en la Party
+        // Renderizar todos los miembros de la party en mazmorra
         const partyListDiv = document.getElementById('party-members-list');
-        if (currentHero) {
-            const playerHpPct = Math.max(0, (currentHero.hp / currentHero.maxHp) * 100);
-            partyListDiv.innerHTML = `
+        partyListDiv.innerHTML = "";
+        const players = room.players || {};
+        for (const [uid, player] of Object.entries(players)) {
+            const isMe = (uid === currentUser.uid);
+            const hpToShow = isMe ? currentHero.hp : player.hp;
+            const maxHpToShow = currentHero.maxHp; // o del player si se sincroniza completo
+            const playerHpPct = Math.max(0, (hpToShow / maxHpToShow) * 100);
+
+            partyListDiv.innerHTML += `
                 <div class="player-card-dungeon">
-                    <strong style="color: #a6e3a1;">${currentHero.name} (${currentHero.clazz})</strong>
+                    <strong style="color: #a6e3a1;">${player.name} (${player.clazz}) ${isMe ? '(Tú)' : ''}</strong>
                     <div class="hp-bar-container" style="margin-top: 5px;">
                         <div class="hp-bar-fill" style="width: ${playerHpPct}%;"></div>
                     </div>
-                    <small>HP: ${Math.max(0, currentHero.hp)} / ${currentHero.maxHp}</small>
+                    <small>HP: ${Math.max(0, hpToShow)} / ${maxHpToShow}</small>
                 </div>
             `;
         }
 
-        // Renderizar Enemigo
         const enemyImg = document.getElementById('enemy-portrait');
         if (hasEnemy) {
             const enemyHpPct = (room.enemy.hp / room.enemy.maxHp) * 100;
@@ -318,16 +492,23 @@ window.addEventListener('DOMContentLoaded', () => {
                 room.log.push(`🛡️ ${room.enemy.name} intenta atacarte (Tirada: ${enemyAttackTotal} vs tu CA ${currentHero.stats.ac}), pero falló.`);
             }
 
+            // Actualizar vida local del player en el mapa de players de la sala
+            if (room.players && room.players[currentUser.uid]) {
+                room.players[currentUser.uid].hp = currentHero.hp;
+            }
+
             if (currentHero.hp <= 0) {
                 showCustomModal(
-                    "💀 ¡HAS MUERTO EN LA MAZMORRA! Tu personaje ha sido borrado permanentemente.",
+                    `💀 ¡${currentHero.name} HA MUERTO! Este personaje ha sido borrado permanentemente de tus registros.`,
                     "☠️ PERMADEATH",
                     async () => {
-                        await deleteDoc(doc(db, "heroes", currentUser.uid));
+                        await deleteDoc(doc(db, "users", currentUser.uid, "characters", currentHeroId));
                         if (unsubscribeRoom) unsubscribeRoom();
                         currentRoomId = null;
+                        currentHero = null;
+                        currentHeroId = null;
                         switchScreen('screen-lobby');
-                        await loadHeroData(currentUser.uid);
+                        await loadUserCharacters(currentUser.uid);
                     }
                 );
                 return;
@@ -362,12 +543,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 showCustomModal(`¡NIVEL AUMENTADO! Ahora eres nivel ${currentHero.level}`, "🌟 LEVEL UP");
             }
 
-            await setDoc(doc(db, "heroes", currentUser.uid), currentHero);
+            await setDoc(doc(db, "users", currentUser.uid, "characters", currentHeroId), currentHero);
         }
 
         currentRoomId = null;
         switchScreen('screen-lobby');
-        await loadHeroData(currentUser.uid);
+        await loadUserCharacters(currentUser.uid);
     }
 
     function switchScreen(screenId) {
