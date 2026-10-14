@@ -1,5 +1,6 @@
 https://balaperdida6032.github.io/dungeon-run-permadeath/
 
+
 # 🗡️ Dungeon Run: Permadeath
 
 **Dungeon Run: Permadeath** es un videojuego RPG web multijugador por turnos desarrollado con un estilo retro pixel-art. Ofrece un sistema de progresión persistente (nivel, experiencia y oro) combinado con una mecánica desafiante de **muerte permanente (permadeath)**: si tu héroe cae en combate dentro de la mazmorra, ¡se elimina para siempre!
