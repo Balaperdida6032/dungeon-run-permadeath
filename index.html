@@ -195,11 +195,17 @@
 
             <!-- PANTALLA DE HISTORIA NARRATIVA INTERACTIVA -->
             <div id="screen-story" class="screen">
-                <h2 id="story-title" style="color: #f9e2af; text-align: center;">CARGANDO HISTORIA...</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h2 id="story-title" style="color: #f9e2af; margin:0;">CARGANDO HISTORIA...</h2>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="btn-toggle-audio" style="background-color: #a6e3a1; color: #111; padding: 6px 10px; font-size: 8px; margin:0;">🔊 Voz: ON</button>
+                    </div>
+                </div>
                 
                 <div class="pixel-box" style="text-align: center;">
                     <img id="story-image" src="" alt="Escena" style="max-width: 180px; height: auto; image-rendering: pixelated; margin: 0 auto 15px auto; display: none; border: 2px solid #45475a;">
-                    <p id="story-text" style="font-size: 10px; line-height: 1.8; color: #cdd6f4; text-align: left; background: #11111b; padding: 15px; border: 2px solid #313244; margin:0;"></p>
+                    <!-- Caja de texto con salto automático y adaptada para prevenir desbordamientos -->
+                    <p id="story-text" style="font-size: 10px; line-height: 1.8; color: #cdd6f4; text-align: left; background: #11111b; padding: 15px; border: 2px solid #313244; margin:0; word-break: break-word; white-space: pre-wrap;"></p>
                 </div>
 
                 <div class="pixel-box">
