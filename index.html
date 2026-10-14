@@ -23,10 +23,24 @@
             </div>
         </div>
 
-        <!-- PANTALLA 2: LOBBY / SELECCIÓN DE PERSONAJE -->
+        <!-- PANTALLA 2: LOBBY / PROGRESO DE CUENTA Y SELECCIÓN -->
         <div id="screen-lobby" class="screen">
-            <h1>SELECCIONAR HÉROE</h1>
+            <h1>LOBBY DE LA CUENTA</h1>
             
+            <!-- PANEL DE PROGRESO DE CUENTA PERMANENTE -->
+            <div class="pixel-box" style="border-color: #f9e2af; background-color: #1e1e2e;">
+                <h3 style="color: #f9e2af; margin-top:0;">🌟 NIVEL DE CUENTA: <span id="account-level">1</span></h3>
+                <div class="hp-bar-container" style="height: 12px; margin: 8px 0;">
+                    <div id="account-exp-bar" class="hp-bar-fill" style="background-color: #f9e2af; width: 0%;"></div>
+                </div>
+                <small id="account-exp-text" style="color: #cdd6f4;">EXP Cuenta: 0 / 200</small>
+                
+                <div style="margin-top: 10px; font-size: 9px; line-height: 1.5; color: #a6e3a1;">
+                    <strong>Mejoras Activas de Cuenta:</strong>
+                    <div id="account-perks-list">Cargando pasivas...</div>
+                </div>
+            </div>
+
             <div class="pixel-box">
                 <h3>Tus Personajes</h3>
                 <div id="character-list" style="margin-bottom: 15px;">
@@ -90,9 +104,9 @@
             <button id="btn-logout" style="background-color: #f38ba8; color:#111; margin-top: 20px;">Cerrar Sesión</button>
         </div>
 
-        <!-- PANTALLA 3: LA FOGATA (SALA DE ESPERA / LOBBY COOPERATIVO) -->
+        <!-- PANTALLA 3: LA FOGATA -->
         <div id="screen-campfire" class="screen">
-            <h1 style="color: #fab387;">🔥 CAMPOAMENTO - FOGATA 🔥</h1>
+            <h1 style="color: #fab387;">🔥 CAMPAMENTO - FOGATA 🔥</h1>
             <div class="pixel-box" style="text-align: center;">
                 <h3>CÓDIGO DE SALA</h3>
                 <h2 id="campfire-room-code" style="color: #a6e3a1; font-size: 24px; letter-spacing: 3px;">----</h2>
@@ -101,20 +115,17 @@
 
             <div class="pixel-box">
                 <h3>Aventureros Descansando</h3>
-                <div id="campfire-party-list">
-                    <!-- Lista de jugadores unidos -->
-                </div>
+                <div id="campfire-party-list"></div>
             </div>
 
             <div class="pixel-box" style="text-align: center;">
                 <button id="btn-toggle-ready" style="background-color: #f9e2af; color: #111; margin-bottom: 15px;">⏳ Marcarme como LISTO</button>
-                <!-- Solo habilitado para el Host cuando todos estén listos -->
                 <button id="btn-start-adventure" disabled style="background-color: #a6e3a1; color: #111;">⚔️ Comenzar Aventura</button>
                 <button id="btn-leave-campfire" style="background-color: #f38ba8; color: #111; margin-top: 10px;">🚪 Abandonar Sala</button>
             </div>
         </div>
 
-        <!-- PANTALLA 4: MAZMORRA / COMBATE POR TURNOS -->
+        <!-- PANTALLA 4: MAZMORRA -->
         <div id="screen-dungeon" class="screen">
             <h2 id="room-title">MAZMORRA - SALA</h2>
             <div class="flex-row">
@@ -152,6 +163,7 @@
         </div>
     </div>
 
-    <script type="module" src="script.js"></script>
+    <!-- Script Principal como Módulo ES6 apuntando a app.js -->
+    <script type="module" src="app.js"></script>
 </body>
 </html>
