@@ -1,4 +1,4 @@
-// app.js - Punto de Entrada Principal del Juego (Versión Completa e Integrada)
+// app.js - Punto de Entrada Principal del Juego (Versión Definitiva Blindada contra null)
 import { 
     auth, db, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, signOut, onAuthStateChanged,
@@ -45,18 +45,18 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     // CONTROL DEL NAVBAR LATERAL
-    document.getElementById('nav-lobby').addEventListener('click', () => {
+    safeAddEvent('nav-lobby', 'click', () => {
         setNavActive('nav-lobby');
         switchScreen('screen-lobby');
     });
 
-    document.getElementById('nav-profile').addEventListener('click', () => {
+    safeAddEvent('nav-profile', 'click', () => {
         setNavActive('nav-profile');
         switchScreen('screen-profile');
         renderAccountUI();
     });
 
-    document.getElementById('nav-achievements').addEventListener('click', () => {
+    safeAddEvent('nav-achievements', 'click', () => {
         setNavActive('nav-achievements');
         switchScreen('screen-achievements');
         renderAchievementsUI();
@@ -69,7 +69,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     // AUTH LISTENERS
-    document.getElementById('btn-login').addEventListener('click', async () => {
+    safeAddEvent('btn-login', 'click', async () => {
         const email = document.getElementById('auth-email').value;
         const pass = document.getElementById('auth-password').value;
         if (!email || !pass) return showCustomModal("Ingresa correo y contraseña.");
@@ -77,7 +77,7 @@ window.addEventListener('DOMContentLoaded', () => {
         catch (e) { showCustomModal("Error: " + e.message); }
     });
 
-    document.getElementById('btn-register').addEventListener('click', async () => {
+    safeAddEvent('btn-register', 'click', async () => {
         const email = document.getElementById('auth-email').value;
         const pass = document.getElementById('auth-password').value;
         if (!email || !pass) return showCustomModal("Ingresa correo y contraseña.");
@@ -85,21 +85,21 @@ window.addEventListener('DOMContentLoaded', () => {
         catch (e) { showCustomModal("Error: " + e.message); }
     });
 
-    document.getElementById('btn-google').addEventListener('click', async () => {
+    safeAddEvent('btn-google', 'click', async () => {
         const provider = new GoogleAuthProvider();
         try { await signInWithPopup(auth, provider); } 
         catch (e) { showCustomModal("Error con Google: " + e.message); }
     });
 
-    document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
+    safeAddEvent('btn-logout', 'click', () => signOut(auth));
 
     // CREADOR DE PERSONAJES Y VISTAS DEL LOBBY
     const classSelect = document.getElementById('hero-class');
     function updateStatUI() {
-        document.getElementById('stat-points-left').innerText = availablePoints;
-        document.getElementById('stat-str').innerText = customStats.str;
-        document.getElementById('stat-dex').innerText = customStats.dex;
-        document.getElementById('stat-int').innerText = customStats.int;
+        safeSetText('stat-points-left', availablePoints);
+        safeSetText('stat-str', customStats.str);
+        safeSetText('stat-dex', customStats.dex);
+        safeSetText('stat-int', customStats.int);
     }
 
     function resetStatsForClass(clazz) {
@@ -120,10 +120,10 @@ window.addEventListener('DOMContentLoaded', () => {
     setupStatButton('str'); setupStatButton('dex'); setupStatButton('int');
 
     function setupStatButton(stat) {
-        document.getElementById(`btn-${stat}-plus`).addEventListener('click', () => {
+        safeAddEvent(`btn-${stat}-plus`, 'click', () => {
             if (availablePoints > 0) { customStats[stat]++; availablePoints--; updateStatUI(); }
         });
-        document.getElementById(`btn-${stat}-minus`).addEventListener('click', () => {
+        safeAddEvent(`btn-${stat}-minus`, 'click', () => {
             if (customStats[stat] > baseStats[stat]) { customStats[stat]--; availablePoints++; updateStatUI(); }
         });
     }
@@ -133,35 +133,43 @@ window.addEventListener('DOMContentLoaded', () => {
         const viewAdv = document.getElementById('lobby-view-adventure');
         
         if (viewName === 'character') {
-            viewChar.style.display = 'block';
-            viewAdv.style.display = 'none';
+            if (viewChar) viewChar.style.display = 'block';
+            if (viewAdv) viewAdv.style.display = 'none';
         } else {
-            viewChar.style.display = 'none';
-            viewAdv.style.display = 'block';
+            if (viewChar) viewChar.style.display = 'none';
+            if (viewAdv) viewAdv.style.display = 'block';
         }
     }
 
-    document.getElementById('btn-show-creator').addEventListener('click', () => {
-        document.getElementById('hero-creator').style.display = 'block';
-        document.getElementById('btn-show-creator').style.display = 'none';
+    safeAddEvent('btn-show-creator', 'click', () => {
+        const creator = document.getElementById('hero-creator');
+        const showCreatorBtn = document.getElementById('btn-show-creator');
+        if (creator) creator.style.display = 'block';
+        if (showCreatorBtn) showCreatorBtn.style.display = 'none';
         resetStatsForClass("Guerrero");
     });
 
-    document.getElementById('btn-cancel-creator').addEventListener('click', () => {
-        document.getElementById('hero-creator').style.display = 'none';
-        document.getElementById('btn-show-creator').style.display = 'block';
+    safeAddEvent('btn-cancel-creator', 'click', () => {
+        const creator = document.getElementById('hero-creator');
+        const showCreatorBtn = document.getElementById('btn-show-creator');
+        if (creator) creator.style.display = 'none';
+        if (showCreatorBtn) showCreatorBtn.style.display = 'block';
     });
 
     async function loadUserCharacters(uid) {
         const charactersRef = collection(db, "users", uid, "characters");
         const snapshot = await getDocs(charactersRef);
         const listDiv = document.getElementById('character-list');
+        if (!listDiv) return;
         listDiv.innerHTML = "";
         
+        const creator = document.getElementById('hero-creator');
+        const showCreatorBtn = document.getElementById('btn-show-creator');
+
         if (snapshot.empty) {
             listDiv.innerHTML = `<p style="color: #fab387;">No tienes personajes creados. ¡Forja uno!</p>`;
-            document.getElementById('hero-creator').style.display = 'block';
-            document.getElementById('btn-show-creator').style.display = 'none';
+            if (creator) creator.style.display = 'block';
+            if (showCreatorBtn) showCreatorBtn.style.display = 'none';
             showLobbyView('character');
             return;
         }
@@ -186,23 +194,29 @@ window.addEventListener('DOMContentLoaded', () => {
         currentHero = heroData;
         showLobbyView('adventure');
 
-        document.getElementById('active-hero-display').innerHTML = `
-            <strong>Héroe Activo:</strong> ${currentHero.name} (${currentHero.clazz})<br>
-            Nivel: ${currentHero.level} | HP: ❤️ ${currentHero.hp}/${currentHero.maxHp} | Oro: 🪙 ${currentHero.gold}
-        `;
+        const activeHeroDisplay = document.getElementById('active-hero-display');
+        if (activeHeroDisplay) {
+            activeHeroDisplay.innerHTML = `
+                <strong>Héroe Activo:</strong> ${currentHero.name} (${currentHero.clazz})<br>
+                Nivel: ${currentHero.level} | HP: ❤️ ${currentHero.hp}/${currentHero.maxHp} | Oro: 🪙 ${currentHero.gold}
+            `;
+        }
     }
 
-    document.getElementById('btn-change-hero').addEventListener('click', () => {
+    safeAddEvent('btn-change-hero', 'click', () => {
         currentHero = null; 
         currentHeroId = null;
-        document.getElementById('hero-creator').style.display = 'none';
-        document.getElementById('btn-show-creator').style.display = 'block';
+        const creator = document.getElementById('hero-creator');
+        const showCreatorBtn = document.getElementById('btn-show-creator');
+        if (creator) creator.style.display = 'none';
+        if (showCreatorBtn) showCreatorBtn.style.display = 'block';
         loadUserCharacters(currentUser.uid);
     });
 
-    document.getElementById('btn-create-hero').addEventListener('click', async () => {
-        const name = document.getElementById('hero-name').value.trim();
-        const clazz = classSelect.value;
+    safeAddEvent('btn-create-hero', 'click', async () => {
+        const nameInput = document.getElementById('hero-name');
+        const name = nameInput ? nameInput.value.trim() : "";
+        const clazz = classSelect ? classSelect.value : "Guerrero";
         if (!name) return showCustomModal("Escribe un nombre para tu héroe.");
 
         const dexMod = getStatModifier(customStats.dex);
@@ -225,8 +239,9 @@ window.addEventListener('DOMContentLoaded', () => {
         await checkAndUnlockAchievement(currentUser.uid, "first_hero");
 
         showCustomModal(`¡Personaje ${name} forjado con éxito!`, "✨ HÉROE CREADO", () => {
-            document.getElementById('hero-name').value = "";
-            document.getElementById('hero-creator').style.display = 'none';
+            if (nameInput) nameInput.value = "";
+            const creator = document.getElementById('hero-creator');
+            if (creator) creator.style.display = 'none';
             selectCharacter(docRef.id, newHero);
         });
     });
@@ -280,27 +295,44 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    document.getElementById('btn-refresh-rooms').addEventListener('click', listenPublicRooms);
+    safeAddEvent('btn-refresh-rooms', 'click', listenPublicRooms);
 
-    // BOTÓN DE PARTIDA SOLITARIA
-    document.getElementById('btn-create-solo').addEventListener('click', async () => {
+    // --- ACCIÓN: BOTÓN PARTIDA SOLITARIO ---
+    safeAddEvent('btn-create-solo', 'click', async () => {
         if (!currentHero) return showCustomModal("Selecciona un personaje primero.");
-        // Las partidas solitarias son privadas (isPublic: false)
-        const code = await createRoom(currentUser, currentHero, false);
-        startCampfireFlow(code, true);
+        try {
+            const code = await createRoom(currentUser, currentHero, false);
+            const roomRef = doc(db, "rooms", code);
+            await updateDoc(roomRef, { 
+                status: "exploring", 
+                currentNode: "start_tavern",
+                storyVotes: {},
+                turnOrder: [currentUser.uid], 
+                activeTurnIndex: 0 
+            });
+            startCampfireFlow(code, true);
+        } catch (e) {
+            showCustomModal("Error al crear partida solitaria: " + e.message);
+        }
     });
 
-    // BOTÓN DE PARTIDA MULTIJUGADOR
-    document.getElementById('btn-create-multi').addEventListener('click', async () => {
+    // --- ACCIÓN: BOTÓN PARTIDA MULTIJUGADOR ---
+    safeAddEvent('btn-create-multi', 'click', async () => {
         if (!currentHero) return showCustomModal("Selecciona un personaje primero.");
-        const isPublic = document.getElementById('chk-is-public').checked;
-        const code = await createRoom(currentUser, currentHero, isPublic);
-        startCampfireFlow(code, false);
+        try {
+            const pubCheckbox = document.getElementById('chk-is-public');
+            const isPublic = pubCheckbox ? pubCheckbox.checked : true;
+            const code = await createRoom(currentUser, currentHero, isPublic);
+            startCampfireFlow(code, false);
+        } catch (e) {
+            showCustomModal("Error al crear partida multijugador: " + e.message);
+        }
     });
 
-    document.getElementById('btn-join-room').addEventListener('click', async () => {
+    safeAddEvent('btn-join-room', 'click', async () => {
         if (!currentHero) return showCustomModal("Selecciona un personaje primero.");
-        const code = document.getElementById('room-code-input').value.trim().toUpperCase();
+        const roomInput = document.getElementById('room-code-input');
+        const code = roomInput ? roomInput.value.trim().toUpperCase() : "";
         if (!code) return showCustomModal("Introduce un código de sala válido.");
         try {
             await joinRoom(currentUser, currentHero, code);
@@ -310,12 +342,11 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // FLUJO DE LA FOGATA Y PARTIDA SOLITARIA
+    // FLUJO DE LA FOGATA / AVENTURA
     function startCampfireFlow(code, isSolo = false) {
-        switchScreen('screen-campfire');
-        document.getElementById('campfire-room-code').innerText = code;
-        
-        attachRoomListener(code, async (roomData) => {
+        attachRoomListener(code, (roomData) => {
+            if (!roomData) return;
+
             if (roomData.players && !roomData.players[currentUser.uid]) {
                 leaveRoomListener();
                 switchScreen('screen-lobby');
@@ -324,28 +355,16 @@ window.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Si es partida solitaria, podemos autoiniciar la aventura de inmediato sin pasar por espera
-            if (isSolo && roomData.status === "waiting" && roomData.host === currentUser.uid) {
-                const roomRef = doc(db, "rooms", code);
-                const turnOrder = [currentUser.uid];
-                await updateDoc(roomRef, { 
-                    status: "exploring", 
-                    currentNode: "start_tavern",
-                    storyVotes: {},
-                    turnOrder, 
-                    activeTurnIndex: 0 
-                });
-                return;
-            }
-
             if (roomData.status === "exploring") {
                 switchScreen('screen-story');
                 renderStoryNode(roomData, isSolo);
             } else if (roomData.status === "fighting") {
                 switchScreen('screen-dungeon');
-                document.getElementById('room-title').innerText = `MAZMORRA - COMBATE`;
+                safeSetText('room-title', "MAZMORRA - COMBATE");
                 updateDungeonUI(roomData);
             } else {
+                switchScreen('screen-campfire');
+                safeSetText('campfire-room-code', code);
                 updateCampfireUI(roomData);
             }
         });
@@ -354,6 +373,8 @@ window.addEventListener('DOMContentLoaded', () => {
     // CAMPAMENTO CON 4 SLOTS FIJOS Y BOTÓN DE KICK
     function updateCampfireUI(room) {
         const partyListDiv = document.getElementById('campfire-party-list');
+        if (!partyListDiv) return;
+
         const players = room.players || {};
         const playerEntries = Object.entries(players);
         
@@ -409,12 +430,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const isHost = (room.host === currentUser.uid);
         const startBtn = document.getElementById('btn-start-adventure');
-        if (isHost && allReady && playerCount > 0) {
-            startBtn.disabled = false;
-            startBtn.style.opacity = "1";
-        } else {
-            startBtn.disabled = true;
-            startBtn.style.opacity = "0.5";
+        if (startBtn) {
+            if (isHost && allReady && playerCount > 0) {
+                startBtn.disabled = false;
+                startBtn.style.opacity = "1";
+            } else {
+                startBtn.disabled = true;
+                startBtn.style.opacity = "0.5";
+            }
         }
     }
 
@@ -431,7 +454,7 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    document.getElementById('btn-toggle-ready').addEventListener('click', async () => {
+    safeAddEvent('btn-toggle-ready', 'click', async () => {
         if (!currentRoomId) return;
         setReadyState(!isReady);
         const roomRef = doc(db, "rooms", currentRoomId);
@@ -443,12 +466,14 @@ window.addEventListener('DOMContentLoaded', () => {
             room.players[currentUser.uid].ready = isReady;
             await updateDoc(roomRef, { players: room.players });
             const btn = document.getElementById('btn-toggle-ready');
-            btn.innerText = isReady ? "✅ ¡ESTÁS LISTO!" : "⏳ Marcarme como LISTO";
-            btn.style.backgroundColor = isReady ? "#a6e3a1" : "#f9e2af";
+            if (btn) {
+                btn.innerText = isReady ? "✅ ¡ESTÁS LISTO!" : "⏳ Marcarme como LISTO";
+                btn.style.backgroundColor = isReady ? "#a6e3a1" : "#f9e2af";
+            }
         }
     });
 
-    document.getElementById('btn-start-adventure').addEventListener('click', async () => {
+    safeAddEvent('btn-start-adventure', 'click', async () => {
         if (!currentRoomId) return;
         const roomRef = doc(db, "rooms", currentRoomId);
         const roomSnap = await getDoc(roomRef);
@@ -465,7 +490,7 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    document.getElementById('btn-leave-campfire').addEventListener('click', async () => {
+    safeAddEvent('btn-leave-campfire', 'click', async () => {
         leaveRoomListener();
         switchScreen('screen-lobby');
         showLobbyView('adventure');
@@ -477,23 +502,28 @@ window.addEventListener('DOMContentLoaded', () => {
         const node = storyNodes[nodeId];
         if (!node) return;
 
-        document.getElementById('story-title').innerText = node.title;
-        document.getElementById('story-text').innerText = node.text;
+        safeSetText('story-title', node.title);
+        safeSetText('story-text', node.text);
 
         const imgEl = document.getElementById('story-image');
-        if (node.image) {
-            imgEl.src = node.image;
-            imgEl.style.display = "block";
-        } else {
-            imgEl.style.display = "none";
+        if (imgEl) {
+            if (node.image) {
+                imgEl.src = node.image;
+                imgEl.style.display = "block";
+            } else {
+                imgEl.style.display = "none";
+            }
         }
 
         const optionsContainer = document.getElementById('story-options-container');
+        if (!optionsContainer) return;
         optionsContainer.innerHTML = "";
 
         const myVote = room.storyVotes ? room.storyVotes[currentUser.uid] : null;
         const votesHeader = document.getElementById('story-votes-header');
-        votesHeader.innerText = isSolo ? "¿Qué acción vas a tomar?" : "¿Qué decidirá la party? (Votación)";
+        if (votesHeader) {
+            votesHeader.innerText = isSolo ? "¿Qué acción vas a tomar?" : "¿Qué decidirá la party? (Votación)";
+        }
 
         node.options.forEach((opt, idx) => {
             const btn = document.createElement('button');
@@ -520,7 +550,6 @@ window.addEventListener('DOMContentLoaded', () => {
         const totalPlayers = Object.keys(room.players || {}).length;
         const currentVotesCount = Object.keys(storyVotes).length;
 
-        // Si es solitario, se aplica la decisión de inmediato sin esperar a nadie más
         if (isSolo || currentVotesCount >= totalPlayers) {
             const { selectedIndex, isTie } = resolveStoryVote(storyVotes);
             const currentNode = storyNodes[room.currentNode || "start_tavern"];
@@ -594,57 +623,69 @@ window.addEventListener('DOMContentLoaded', () => {
         const isMyTurn = (currentTurnUid === currentUser.uid);
 
         const canAct = hasEnemy && isMyTurn && currentHero.hp > 0;
-        document.getElementById('btn-action-attack').disabled = !canAct;
-        document.getElementById('btn-action-skill').disabled = !canAct;
-        document.getElementById('btn-action-potion').disabled = !canAct;
-        document.getElementById('btn-action-flee').disabled = !canAct;
+        
+        const btnAtk = document.getElementById('btn-action-attack');
+        const btnSk = document.getElementById('btn-action-skill');
+        const btnPot = document.getElementById('btn-action-potion');
+        const btnFl = document.getElementById('btn-action-flee');
 
-        document.getElementById('potion-count').innerText = currentHero.potions || 0;
+        if (btnAtk) btnAtk.disabled = !canAct;
+        if (btnSk) btnSk.disabled = !canAct;
+        if (btnPot) btnPot.disabled = !canAct;
+        if (btnFl) btnFl.disabled = !canAct;
+
+        safeSetText('potion-count', currentHero.potions || 0);
 
         const partyListDiv = document.getElementById('party-members-list');
-        partyListDiv.innerHTML = "";
-        const players = room.players || {};
+        if (partyListDiv) {
+            partyListDiv.innerHTML = "";
+            const players = room.players || {};
 
-        for (const [uid, player] of Object.entries(players)) {
-            const isMe = (uid === currentUser.uid);
-            const hpToShow = isMe ? currentHero.hp : player.hp;
-            const maxHpToShow = player.maxHp || 100;
-            const playerHpPct = Math.max(0, (hpToShow / maxHpToShow) * 100);
-            const isPlayerTurn = (uid === currentTurnUid);
-            const turnBadge = isPlayerTurn ? ' <span style="color: #f9e2af; font-size: 10px;">⚡ [TURNO]</span>' : '';
-            const borderStyle = isPlayerTurn ? 'border: 2px solid #f9e2af;' : 'border: 2px solid #45475a;';
+            for (const [uid, player] of Object.entries(players)) {
+                const isMe = (uid === currentUser.uid);
+                const hpToShow = isMe ? currentHero.hp : player.hp;
+                const maxHpToShow = player.maxHp || 100;
+                const playerHpPct = Math.max(0, (hpToShow / maxHpToShow) * 100);
+                const isPlayerTurn = (uid === currentTurnUid);
+                const turnBadge = isPlayerTurn ? ' <span style="color: #f9e2af; font-size: 10px;">⚡ [TURNO]</span>' : '';
+                const borderStyle = isPlayerTurn ? 'border: 2px solid #f9e2af;' : 'border: 2px solid #45475a;';
 
-            partyListDiv.innerHTML += `
-                <div class="player-card-dungeon" style="${borderStyle}">
-                    <strong style="color: #a6e3a1;">${player.name} (${player.clazz}) ${isMe ? '(Tú)' : ''}</strong>${turnBadge}
-                    <div class="hp-bar-container" style="margin-top: 5px;">
-                        <div class="hp-bar-fill" style="width: ${playerHpPct}%;"></div>
+                partyListDiv.innerHTML += `
+                    <div class="player-card-dungeon" style="${borderStyle}">
+                        <strong style="color: #a6e3a1;">${player.name} (${player.clazz}) ${isMe ? '(Tú)' : ''}</strong>${turnBadge}
+                        <div class="hp-bar-container" style="margin-top: 5px;">
+                            <div class="hp-bar-fill" style="width: ${playerHpPct}%;"></div>
+                        </div>
+                        <small>HP: ${Math.max(0, hpToShow)} / ${maxHpToShow}</small>
                     </div>
-                    <small>HP: ${Math.max(0, hpToShow)} / ${maxHpToShow}</small>
-                </div>
-            `;
+                `;
+            }
         }
 
         const enemyImg = document.getElementById('enemy-portrait');
         if (hasEnemy) {
             const enemyHpPct = (room.enemy.hp / room.enemy.maxHp) * 100;
-            document.getElementById('enemy-name').innerText = `${room.enemy.name} (CA: ${room.enemy.ac})`;
-            document.getElementById('enemy-hp-bar').style.width = Math.max(0, enemyHpPct) + '%';
-            document.getElementById('enemy-hp-text').innerText = `HP: ${Math.max(0, room.enemy.hp)}/${room.enemy.maxHp}`;
+            safeSetText('enemy-name', `${room.enemy.name} (CA: ${room.enemy.ac})`);
+            const hpBar = document.getElementById('enemy-hp-bar');
+            if (hpBar) hpBar.style.width = Math.max(0, enemyHpPct) + '%';
+            safeSetText('enemy-hp-text', `HP: ${Math.max(0, room.enemy.hp)}/${room.enemy.maxHp}`);
             if (enemyImg) {
                 enemyImg.src = room.enemy.image || "";
                 enemyImg.style.display = 'block';
             }
         } else {
-            document.getElementById('enemy-name').innerText = "Sin enemigo activo";
-            document.getElementById('enemy-hp-bar').style.width = '0%';
-            document.getElementById('enemy-hp-text').innerText = `HP: 0/0`;
+            safeSetText('enemy-name', "Sin enemigo activo");
+            const hpBar = document.getElementById('enemy-hp-bar');
+            if (hpBar) hpBar.style.width = '0%';
+            safeSetText('enemy-hp-text', `HP: 0/0`);
             if (enemyImg) enemyImg.style.display = 'none';
         }
 
         const logContainer = document.getElementById('combat-log');
-        logContainer.innerHTML = (room.log || []).map(l => `> ${l}`).join('<br>');
-        logContainer.scrollTop = logContainer.scrollHeight;
+        if (logContainer) {
+            logContainer.innerHTML = (room.log || []).map(l => `> ${l}`).join('<br>');
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
 
         if (room.enemy && room.enemy.hp <= 0 && room.status === "fighting") {
             room.status = "victory";
@@ -663,7 +704,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    document.getElementById('btn-action-attack').addEventListener('click', async () => {
+    safeAddEvent('btn-action-attack', 'click', async () => {
         if (!currentRoomId) return;
         const roomRef = doc(db, "rooms", currentRoomId);
         const roomSnap = await getDoc(roomRef);
@@ -744,7 +785,7 @@ window.addEventListener('DOMContentLoaded', () => {
         await updateDoc(roomRef, room);
     });
 
-    document.getElementById('btn-action-flee').addEventListener('click', () => {
+    safeAddEvent('btn-action-flee', 'click', () => {
         showCustomModal("¡Has huido a salvo con tus ganancias actuales!", "🏃‍♂️ HUIDA EXITOSA", () => {
             leaveDungeonAndReward(10, 5);
         });
@@ -781,3 +822,18 @@ window.addEventListener('DOMContentLoaded', () => {
         await loadUserCharacters(currentUser.uid);
     }
 });
+
+// Funciones auxiliares de seguridad para evitar errores cuando un elemento no existe en el DOM actual
+function safeAddEvent(elementId, eventType, callback) {
+    const el = document.getElementById(elementId);
+    if (el) {
+        el.addEventListener(eventType, callback);
+    }
+}
+
+function safeSetText(elementId, text) {
+    const el = document.getElementById(elementId);
+    if (el) {
+        el.innerText = text;
+    }
+}

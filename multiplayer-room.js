@@ -1,6 +1,5 @@
 // multiplayer-room.js - Gestión de Salas, Fogata y Sincronización
 import { db, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot } from './firebase-config.js';
-import { switchScreen, showCustomModal } from './ui-controller.js';
 
 export let currentRoomId = null;
 export let unsubscribeRoom = null;
@@ -18,7 +17,7 @@ export async function createRoom(currentUser, currentHero, isPublic = true) {
     const roomData = {
         host: currentUser.uid,
         isPublic: isPublic,
-        status: "waiting", // Usamos "waiting" para el campamento de espera
+        status: "waiting",
         currentNode: "start_tavern",
         turnOrder: [],
         activeTurnIndex: 0,
@@ -32,7 +31,7 @@ export async function createRoom(currentUser, currentHero, isPublic = true) {
                 ready: false
             }
         },
-        log: ["🏕️ La party se ha reunido en la fogata del campamento."]
+        log: ["🏕️ La party se ha reunido."]
     };
 
     await setDoc(doc(db, "rooms", roomCode), roomData);
@@ -42,15 +41,10 @@ export async function createRoom(currentUser, currentHero, isPublic = true) {
 export async function joinRoom(currentUser, currentHero, roomCode) {
     const roomRef = doc(db, "rooms", roomCode);
     const roomSnap = await getDoc(roomRef);
-    if (!roomSnap.exists()) throw new Error("La sala con ese código no existe.");
+    if (!roomSnap.exists()) throw new Error("La sala no existe.");
 
     const room = roomSnap.data();
     if (room.status !== "waiting") throw new Error("La partida ya ha comenzado.");
-
-    const playersCount = Object.keys(room.players || {}).length;
-    if (playersCount >= 4 && !room.players[currentUser.uid]) {
-        throw new Error("La sala está llena (máximo 4 jugadores).");
-    }
 
     currentRoomId = roomCode;
     isReady = false;
@@ -73,7 +67,6 @@ export function leaveRoomListener() {
         unsubscribeRoom = null;
     }
     currentRoomId = null;
-    isReady = false;
 }
 
 export function attachRoomListener(roomCode, onRoomUpdate) {
