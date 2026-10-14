@@ -1,4 +1,4 @@
-// app.js - Punto de Entrada Principal del Juego (Versión Final Completa)
+// app.js - Punto de Entrada Principal (Actualizado con Inventario, Subasta y Equipamiento)
 import { 
     auth, db, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, signOut, onAuthStateChanged,
@@ -13,17 +13,23 @@ import {
 import { 
     currentRoomId, createRoom, joinRoom, attachRoomListener, leaveRoom, isReady, setReadyState 
 } from './multiplayer-room.js';
-import { storyNodes, resolveStoryVote, getDynamicImageForText } from './story-system.js';
-import { speakNarratorText, toggleAudioSystem, repeatLastSpeech } from './audio-system.js';
+import { toggleAudioSystem, repeatLastSpeech } from './audio-system.js';
+
+import { initCharacterManager, loadUserCharacters, showLobbyView, showAttributeSelectorModal, updateActiveHeroDisplay, getCurrentHero, getCurrentHeroId } from './character-ui.js';
+import { renderStoryNode } from './story-controller.js';
+import { initAuctionSystem } from './auction-system.js';
 
 let currentUser = null;
-let currentHeroId = null;
 let currentHero = null;
+let currentHeroId = null;
 
-let availablePoints = 5;
-let customStats = { str: 10, dex: 10, int: 10 };
-let baseStats = { str: 10, dex: 10, int: 10 };
-let typingTimer = null;
+window.getCurrentHero = () => currentHero;
+window.startCombatFromStory = startCombatFromStory;
+window.handleMissionComplete = async () => {
+    await checkAndUnlockAchievement(currentUser.uid, "first_victory");
+    await addAccountExp(currentUser.uid, 200);
+    leaveDungeonAndReward(200, 150);
+};
 
 window.addEventListener('DOMContentLoaded', () => {
 
@@ -35,7 +41,22 @@ window.addEventListener('DOMContentLoaded', () => {
             if (sidebar) sidebar.classList.remove('sidebar-hidden');
             switchScreen('screen-lobby');
             await loadAccountData(user.uid);
-            await loadUserCharacters(user.uid);
+            
+            initCharacterManager(currentUser, (id, hero) => {
+                currentHeroId = id;
+                currentHero = hero;
+            }, accountData);
+
+            await loadUserCharacters(currentUser, (id, hero) => {
+                currentHeroId = id;
+                currentHero = hero;
+            });
+
+            // Inicializar sistema de subastas
+            initAuctionSystem(getCurrentHero, getCurrentHeroId, currentUser, () => {
+                updateActiveHeroDisplay(currentUser);
+            });
+
             listenPublicRooms();
         } else {
             currentUser = null;
@@ -56,9 +77,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    safeAddEvent('btn-speak-narrator', 'click', () => {
-        repeatLastSpeech();
-    });
+    safeAddEvent('btn-speak-narrator', 'click', repeatLastSpeech);
 
     // NAVBAR LATERAL
     safeAddEvent('nav-lobby', 'click', () => {
@@ -76,6 +95,11 @@ window.addEventListener('DOMContentLoaded', () => {
         setNavActive('nav-achievements');
         switchScreen('screen-achievements');
         renderAchievementsUI();
+    });
+
+    safeAddEvent('nav-auction', 'click', () => {
+        setNavActive('nav-auction');
+        switchScreen('screen-auction');
     });
 
     function setNavActive(btnId) {
@@ -109,160 +133,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     safeAddEvent('btn-logout', 'click', () => signOut(auth));
 
-    // CREADOR DE PERSONAJES Y ESTADÍSTICAS
-    const classSelect = document.getElementById('hero-class');
-    function updateStatUI() {
-        safeSetText('stat-points-left', availablePoints);
-        safeSetText('stat-str', customStats.str);
-        safeSetText('stat-dex', customStats.dex);
-        safeSetText('stat-int', customStats.int);
-    }
-
-    function resetStatsForClass(clazz) {
-        if (clazz === "Guerrero") baseStats = { str: 14, dex: 12, int: 8 };
-        else if (clazz === "Mago") baseStats = { str: 8, dex: 12, int: 14 };
-        else baseStats = { str: 10, dex: 14, int: 10 };
-
-        customStats = { ...baseStats };
-        availablePoints = (accountData.level >= 7) ? 6 : 5;
-        updateStatUI();
-    }
-
-    if (classSelect) {
-        classSelect.addEventListener('change', (e) => resetStatsForClass(e.target.value));
-        resetStatsForClass("Guerrero");
-    }
-
-    setupStatButton('str'); setupStatButton('dex'); setupStatButton('int');
-
-    function setupStatButton(stat) {
-        safeAddEvent(`btn-${stat}-plus`, 'click', () => {
-            if (availablePoints > 0) { customStats[stat]++; availablePoints--; updateStatUI(); }
-        });
-        safeAddEvent(`btn-${stat}-minus`, 'click', () => {
-            if (customStats[stat] > baseStats[stat]) { customStats[stat]--; availablePoints++; updateStatUI(); }
-        });
-    }
-
-    function showLobbyView(viewName) {
-        const viewChar = document.getElementById('lobby-view-character');
-        const viewAdv = document.getElementById('lobby-view-adventure');
-        
-        if (viewName === 'character') {
-            if (viewChar) viewChar.style.display = 'block';
-            if (viewAdv) viewAdv.style.display = 'none';
-        } else {
-            if (viewChar) viewChar.style.display = 'none';
-            if (viewAdv) viewAdv.style.display = 'block';
-        }
-    }
-
-    safeAddEvent('btn-show-creator', 'click', () => {
-        const creator = document.getElementById('hero-creator');
-        const showCreatorBtn = document.getElementById('btn-show-creator');
-        if (creator) creator.style.display = 'block';
-        if (showCreatorBtn) showCreatorBtn.style.display = 'none';
-        resetStatsForClass("Guerrero");
-    });
-
-    safeAddEvent('btn-cancel-creator', 'click', () => {
-        const creator = document.getElementById('hero-creator');
-        const showCreatorBtn = document.getElementById('btn-show-creator');
-        if (creator) creator.style.display = 'none';
-        if (showCreatorBtn) showCreatorBtn.style.display = 'block';
-    });
-
-    async function loadUserCharacters(uid) {
-        const charactersRef = collection(db, "users", uid, "characters");
-        const snapshot = await getDocs(charactersRef);
-        const listDiv = document.getElementById('character-list');
-        if (!listDiv) return;
-        listDiv.innerHTML = "";
-        
-        const creator = document.getElementById('hero-creator');
-        const showCreatorBtn = document.getElementById('btn-show-creator');
-
-        if (snapshot.empty) {
-            listDiv.innerHTML = `<p style="color: #fab387;">No tienes personajes creados. ¡Forja uno!</p>`;
-            if (creator) creator.style.display = 'block';
-            if (showCreatorBtn) showCreatorBtn.style.display = 'none';
-            showLobbyView('character');
-            return;
-        }
-
-        snapshot.forEach((docSnap) => {
-            const hero = docSnap.data();
-            const heroId = docSnap.id;
-            const btn = document.createElement('button');
-            btn.innerHTML = `⚔️ ${hero.name} (${hero.clazz}) - Nivel ${hero.level} [HP: ${hero.hp}/${hero.maxHp}]`;
-            btn.style.marginBottom = "10px";
-            btn.style.backgroundColor = "#313244";
-            btn.style.color = "#cdd6f4";
-            btn.addEventListener('click', () => selectCharacter(heroId, hero));
-            listDiv.appendChild(btn);
-        });
-
-        showLobbyView('character');
-    }
-
-    function selectCharacter(heroId, heroData) {
-        currentHeroId = heroId;
-        currentHero = heroData;
-        showLobbyView('adventure');
-
-        const activeHeroDisplay = document.getElementById('active-hero-display');
-        if (activeHeroDisplay) {
-            activeHeroDisplay.innerHTML = `
-                <strong>Héroe Activo:</strong> ${currentHero.name} (${currentHero.clazz})<br>
-                Nivel: ${currentHero.level} | HP: ❤️ ${currentHero.hp}/${currentHero.maxHp} | Oro: 🪙 ${currentHero.gold}
-            `;
-        }
-    }
-
-    safeAddEvent('btn-change-hero', 'click', () => {
-        currentHero = null; 
-        currentHeroId = null;
-        const creator = document.getElementById('hero-creator');
-        const showCreatorBtn = document.getElementById('btn-show-creator');
-        if (creator) creator.style.display = 'none';
-        if (showCreatorBtn) showCreatorBtn.style.display = 'block';
-        loadUserCharacters(currentUser.uid);
-    });
-
-    safeAddEvent('btn-create-hero', 'click', async () => {
-        const nameInput = document.getElementById('hero-name');
-        const name = nameInput ? nameInput.value.trim() : "";
-        const clazz = classSelect ? classSelect.value : "Guerrero";
-        if (!name) return showCustomModal("Escribe un nombre para tu héroe.");
-
-        const dexMod = getStatModifier(customStats.dex);
-        let ac = 10 + dexMod;
-        if (clazz === "Guerrero") ac += 4;
-        else if (clazz === "Pícaro") ac += 2;
-
-        let initialPotions = (accountData.level >= 2) ? 4 : 3;
-        let baseHp = (accountData.level >= 5) ? 120 : 100;
-        let startGold = (accountData.level >= 6) ? 100 : 50;
-
-        const newHero = {
-            name, clazz, level: 1, exp: 0, gold: startGold, hp: baseHp, maxHp: baseHp, potions: initialPotions,
-            stats: { ...customStats, ac }
-        };
-
-        const charactersRef = collection(db, "users", currentUser.uid, "characters");
-        const docRef = await addDoc(charactersRef, newHero);
-        
-        await checkAndUnlockAchievement(currentUser.uid, "first_hero");
-
-        showCustomModal(`¡Personaje ${name} forjado con éxito!`, "✨ HÉROE CREADO", () => {
-            if (nameInput) nameInput.value = "";
-            const creator = document.getElementById('hero-creator');
-            if (creator) creator.style.display = 'none';
-            selectCharacter(docRef.id, newHero);
-        });
-    });
-
-    // PARTIDAS PÚBLICAS Y LISTENER
+    // SALAS PÚBLICAS Y LOBBY
     function listenPublicRooms() {
         const roomsRef = collection(db, "rooms");
         onSnapshot(roomsRef, (snapshot) => {
@@ -313,7 +184,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
     safeAddEvent('btn-refresh-rooms', 'click', listenPublicRooms);
 
-    // MODO SOLITARIO
     safeAddEvent('btn-create-solo', 'click', async () => {
         if (!currentHero) return showCustomModal("Selecciona un personaje primero.");
         try {
@@ -332,7 +202,6 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // MODO MULTIJUGADOR
     safeAddEvent('btn-create-multi', 'click', async () => {
         if (!currentHero) return showCustomModal("Selecciona un personaje primero.");
         try {
@@ -361,6 +230,7 @@ window.addEventListener('DOMContentLoaded', () => {
     function startCampfireFlow(code, isSolo = false) {
         attachRoomListener(code, (roomData) => {
             if (!roomData) return;
+            roomData.id = code;
 
             if (roomData.players && !roomData.players[currentUser.uid]) {
                 leaveRoom(currentUser.uid);
@@ -370,9 +240,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            if (roomData.status === "exploring") {
+            if (roomData.status === "exploring" || roomData.status === "victory") {
                 switchScreen('screen-story');
-                renderStoryNode(roomData, isSolo);
+                renderStoryNode(roomData, currentUser, isSolo);
             } else if (roomData.status === "fighting") {
                 switchScreen('screen-dungeon');
                 safeSetText('room-title', "MAZMORRA - COMBATE");
@@ -509,138 +379,21 @@ window.addEventListener('DOMContentLoaded', () => {
         showLobbyView('adventure');
     });
 
-    // SISTEMA NARRATIVO CON DISPARO DE AUDIO INMEDIATO AL CARGAR EL NODO
-    function renderStoryNode(room, isSolo = false) {
-        const nodeId = room.currentNode || "start_tavern";
-        const node = storyNodes[nodeId];
-        if (!node) return;
-
-        if (typingTimer) clearInterval(typingTimer);
-
-        safeSetText('story-title', node.title);
-        
-        const textElement = document.getElementById('story-text');
-        const imgEl = document.getElementById('story-image');
-        
-        if (imgEl) {
-            imgEl.src = node.defaultImage || "./assets/sprites/Campfire_4x.png";
-            imgEl.style.display = "block";
-        }
-
-        if (textElement) {
-            textElement.innerText = "";
-            let charIndex = 0;
-            const fullText = node.text;
-
-            // 🚀 DISPARO INMEDIATO DE AUDIO AL CARGAR EL NODO NARRATIVO
-            speakNarratorText(fullText, 0);
-
-            typingTimer = setInterval(() => {
-                if (charIndex < fullText.length) {
-                    textElement.innerText += fullText.charAt(charIndex);
-                    charIndex++;
-
-                    if (imgEl) {
-                        const currentShownText = textElement.innerText;
-                        const dynamicImg = getDynamicImageForText(currentShownText, node.defaultImage);
-                        if (!imgEl.src.endsWith(dynamicImg)) {
-                            imgEl.src = dynamicImg;
-                        }
-                    }
-                } else {
-                    clearInterval(typingTimer);
-                }
-            }, 25);
-        }
-
-        const optionsContainer = document.getElementById('story-options-container');
-        if (!optionsContainer) return;
-        optionsContainer.innerHTML = "";
-
-        const myVote = room.storyVotes ? room.storyVotes[currentUser.uid] : null;
-        const votesHeader = document.getElementById('story-votes-header');
-        if (votesHeader) {
-            votesHeader.innerText = isSolo ? "¿Qué acción vas a tomar?" : "¿Qué decidirá la party? (Votación)";
-        }
-
-        node.options.forEach((opt, idx) => {
-            const btn = document.createElement('button');
-            btn.className = "story-option-btn";
-            const isSelected = (myVote === idx);
-            if (isSelected) {
-                btn.style.borderColor = "#a6e3a1";
-                btn.style.backgroundColor = "#252538";
-            }
-
-            btn.innerText = `${opt.text} ${isSelected && !isSolo ? ' [TU VOTO]' : ''}`;
-            btn.addEventListener('click', () => registerStoryVote(idx, room, isSolo));
-            optionsContainer.appendChild(btn);
-        });
-    }
-
-    async function registerStoryVote(optionIdx, room, isSolo = false) {
-        if (!currentRoomId) return;
-        const roomRef = doc(db, "rooms", currentRoomId);
-
-        const storyVotes = room.storyVotes || {};
-        storyVotes[currentUser.uid] = optionIdx;
-
-        const totalPlayers = Object.keys(room.players || {}).length;
-        const currentVotesCount = Object.keys(storyVotes).length;
-
-        if (isSolo || currentVotesCount >= totalPlayers) {
-            const { selectedIndex, isTie } = resolveStoryVote(storyVotes);
-            const currentNode = storyNodes[room.currentNode || "start_tavern"];
-            const chosenOption = currentNode.options[selectedIndex];
-
-            let tieText = (isTie && !isSolo) ? " 🎲 ¡Empate y decidió el destino!" : "";
-            
-            showCustomModal(
-                isSolo ? `Elegiste: "${chosenOption.text}".` : `La party decidió: "${chosenOption.text}".${tieText}`,
-                "🗳️ DECISIÓN TOMADA",
-                async () => {
-                    await updateDoc(roomRef, { storyVotes: {} });
-                    
-                    if (chosenOption.nextNode) {
-                        if (chosenOption.nextNode.startsWith("start_combat_")) {
-                            startCombatFromStory(chosenOption.nextNode, roomRef);
-                        } else {
-                            await updateDoc(roomRef, { currentNode: chosenOption.nextNode });
-                        }
-                    } else if (chosenOption.check) {
-                        const statVal = currentHero.stats[chosenOption.check] || 10;
-                        const mod = getStatModifier(statVal);
-                        const d20 = rollDice(20);
-                        const total = d20 + mod;
-
-                        if (total >= chosenOption.dc) {
-                            showCustomModal(`🎲 Tirada: ${d20}+${mod}=${total} vs CD ${chosenOption.dc}. ¡ÉXITO!`);
-                            const next = chosenOption.successNode;
-                            if (next.startsWith("start_combat_")) startCombatFromStory(next, roomRef);
-                            else await updateDoc(roomRef, { currentNode: next });
-                        } else {
-                            showCustomModal(`🎲 Tirada: ${d20}+${mod}=${total} vs CD ${chosenOption.dc}. ¡FRACASO!`);
-                            const next = chosenOption.failNode;
-                            if (next.startsWith("start_combat_")) startCombatFromStory(next, roomRef);
-                            else await updateDoc(roomRef, { currentNode: next });
-                        }
-                    }
-                }
-            );
-        } else {
-            await updateDoc(roomRef, { storyVotes });
-        }
-    }
-
+    // COMBATE TÁCTICO
     async function startCombatFromStory(combatType, roomRef) {
         let enemy = {
-            name: "Goblin Asaltante", hp: 45, maxHp: 45, ac: 12, attackBonus: 3, damageDice: 6, expReward: 50, goldReward: 25,
+            name: "Goblin Explorador", hp: 35, maxHp: 35, ac: 11, attackBonus: 2, damageDice: 6, expReward: 40, goldReward: 20,
             image: "./assets/sprites/goblin.png"
         };
 
-        if (combatType === "start_combat_rats") {
+        if (combatType === "start_combat_boss_goblin") {
             enemy = {
-                name: "Rata Gigante de las Cloacas", hp: 30, maxHp: 30, ac: 10, attackBonus: 2, damageDice: 4, expReward: 30, goldReward: 10,
+                name: "Goblin Élite Guardián (Jefe)", hp: 75, maxHp: 75, ac: 14, attackBonus: 4, damageDice: 8, expReward: 120, goldReward: 80,
+                image: "./assets/sprites/goblin.png"
+            };
+        } else if (combatType === "start_combat_rats") {
+            enemy = {
+                name: "Manada de Ratas Gigantes", hp: 25, maxHp: 25, ac: 10, attackBonus: 2, damageDice: 4, expReward: 30, goldReward: 10,
                 image: "./assets/sprites/rat.png"
             };
         }
@@ -652,7 +405,6 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // COMBATE TÁCTICO POR TURNOS
     function updateDungeonUI(room) {
         const hasEnemy = room.enemy && room.enemy.hp > 0;
         const turnOrder = room.turnOrder || [];
@@ -730,13 +482,42 @@ window.addEventListener('DOMContentLoaded', () => {
             const expReward = room.enemy.expReward || 50;
             const goldReward = room.enemy.goldReward || 30;
             
+            let nextStoryNode = "after_combat_goblin_1";
+            if (room.enemy.name.includes("Jefe")) {
+                nextStoryNode = "after_boss_victory";
+            }
+
             showCustomModal(
-                `¡Enemigo derrotado! (+${expReward} EXP, +${goldReward} Oro).`,
+                `¡Enemigo derrotado! (+${expReward} EXP, +${goldReward} Oro y botín obtenido).`,
                 "🏆 ¡VICTORIA!",
                 async () => {
                     await checkAndUnlockAchievement(currentUser.uid, "first_victory");
                     await addAccountExp(currentUser.uid, expReward);
-                    leaveDungeonAndReward(expReward, goldReward);
+                    
+                    if (currentHero && currentHero.hp > 0) {
+                        currentHero.exp += expReward;
+                        currentHero.gold += goldReward;
+
+                        // Otorgar un ítem aleatorio al ganar combate
+                        const possibleLoot = [
+                            { name: "Daga Encantada", type: "weapon", stat: "dex", bonus: 2 },
+                            { name: "Escudo de Bronce", type: "armor", stat: "str", bonus: 2 },
+                            { name: "Anillo del Sabio", type: "armor", stat: "int", bonus: 2 }
+                        ];
+                        const foundItem = possibleLoot[Math.floor(Math.random() * possibleLoot.length)];
+                        if (!currentHero.inventory) currentHero.inventory = [];
+                        currentHero.inventory.push(foundItem);
+
+                        await setDoc(doc(db, "users", currentUser.uid, "characters", currentHeroId), currentHero);
+                    }
+
+                    const roomRef = doc(db, "rooms", currentRoomId);
+                    await updateDoc(roomRef, {
+                        status: "exploring",
+                        currentNode: nextStoryNode,
+                        enemy: null,
+                        log: []
+                    });
                 }
             );
         }
@@ -779,9 +560,74 @@ window.addEventListener('DOMContentLoaded', () => {
             room.log.push(`🛡️ El ataque de ${currentHero.name} es bloqueado.`);
         }
 
+        await advanceTurnAndCheckEnemy(room, roomRef);
+    });
+
+    safeAddEvent('btn-action-potion', 'click', async () => {
+        if (!currentRoomId || !currentHero) return;
+        const roomRef = doc(db, "rooms", currentRoomId);
+        const roomSnap = await getDoc(roomRef);
+        if (!roomSnap.exists()) return;
+        
+        const room = roomSnap.data();
+        const turnOrder = room.turnOrder || [];
+        const activeTurnIndex = room.activeTurnIndex || 0;
+
+        if (turnOrder[activeTurnIndex] !== currentUser.uid) return showCustomModal("No es tu turno.");
+        if (currentHero.potions <= 0) return showCustomModal("¡No te quedan pociones de salud!");
+        if (currentHero.hp >= currentHero.maxHp) return showCustomModal("Ya tienes la salud al máximo.");
+
+        currentHero.potions--;
+        const healAmount = 40;
+        currentHero.hp = Math.min(currentHero.maxHp, currentHero.hp + healAmount);
+
+        if (room.players && room.players[currentUser.uid]) {
+            room.players[currentUser.uid].hp = currentHero.hp;
+        }
+
+        room.log.push(`🧪 ${currentHero.name} bebe una poción y recupera ${healAmount} de HP.`);
+        await advanceTurnAndCheckEnemy(room, roomRef);
+    });
+
+    safeAddEvent('btn-action-skill', 'click', async () => {
+        if (!currentRoomId || !currentHero) return;
+        const roomRef = doc(db, "rooms", currentRoomId);
+        const roomSnap = await getDoc(roomRef);
+        if (!roomSnap.exists()) return;
+        
+        const room = roomSnap.data();
+        const turnOrder = room.turnOrder || [];
+        const activeTurnIndex = room.activeTurnIndex || 0;
+
+        if (turnOrder[activeTurnIndex] !== currentUser.uid) return showCustomModal("No es tu turno.");
+        if (!room.enemy || room.enemy.hp <= 0) return showCustomModal("No hay enemigo activo.");
+
+        let skillName = "Golpe Poderoso";
+        let damageMultiplier = 1.5;
+
+        if (currentHero.clazz === "Mago") {
+            skillName = "Blast Arcano";
+            damageMultiplier = 1.8;
+        } else if (currentHero.clazz === "Pícaro") {
+            skillName = "Puñalada Letal";
+            damageMultiplier = 1.7;
+        }
+
+        const baseDmg = rollDice(10) + 6;
+        const totalSkillDmg = Math.floor(baseDmg * damageMultiplier);
+
+        room.enemy.hp -= totalSkillDmg;
+        room.log.push(`✨ ${currentHero.name} usa su habilidad [${skillName}] e inflige ${totalSkillDmg} de daño.`);
+
+        await advanceTurnAndCheckEnemy(room, roomRef);
+    });
+
+    async function advanceTurnAndCheckEnemy(room, roomRef) {
+        const turnOrder = room.turnOrder || [];
+        const activeTurnIndex = room.activeTurnIndex || 0;
         let nextTurnIndex = (activeTurnIndex + 1) % turnOrder.length;
 
-        if (nextTurnIndex === 0 && room.enemy.hp > 0) {
+        if (nextTurnIndex === 0 && room.enemy && room.enemy.hp > 0) {
             const enemyD20 = rollDice(20);
             const enemyAttackTotal = enemyD20 + room.enemy.attackBonus;
 
@@ -807,7 +653,10 @@ window.addEventListener('DOMContentLoaded', () => {
                         currentHeroId = null;
                         switchScreen('screen-lobby');
                         showLobbyView('adventure');
-                        await loadUserCharacters(currentUser.uid);
+                        await loadUserCharacters(currentUser, (id, hero) => {
+                            currentHeroId = id;
+                            currentHero = hero;
+                        });
                     }
                 );
                 return;
@@ -816,10 +665,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
         room.activeTurnIndex = nextTurnIndex;
         await updateDoc(roomRef, room);
-    });
+    }
 
     safeAddEvent('btn-action-flee', 'click', () => {
-        showCustomModal("¡Has huido con éxito!", "🏃‍♂️ HUIDA", () => {
+        showCustomModal("¡Has huido con éxito de la batalla!", "🏃‍♂️ HUIDA", () => {
             leaveDungeonAndReward(10, 5);
         });
     });
@@ -832,19 +681,36 @@ window.addEventListener('DOMContentLoaded', () => {
             currentHero.gold += goldGain;
             if (currentHero.gold >= 150) await checkAndUnlockAchievement(currentUser.uid, "gold_hoarder");
             
-            if (currentHero.exp >= currentHero.level * 100) {
+            let leveledUp = false;
+            while (currentHero.exp >= currentHero.level * 100) {
                 currentHero.level += 1;
                 currentHero.maxHp += 20;
                 currentHero.hp = currentHero.maxHp;
-                showCustomModal(`¡Nivel aumentado a ${currentHero.level}!`, "🌟 LEVEL UP");
+                leveledUp = true;
             }
 
             await setDoc(doc(db, "users", currentUser.uid, "characters", currentHeroId), currentHero);
+
+            if (leveledUp) {
+                showAttributeSelectorModal(currentUser, () => {
+                    finalizeReturnToLobby();
+                });
+                return;
+            }
         }
 
+        finalizeReturnToLobby();
+    }
+
+    function finalizeReturnToLobby() {
         switchScreen('screen-lobby');
         showLobbyView('adventure');
-        await loadUserCharacters(currentUser.uid);
+        if (currentUser) {
+            loadUserCharacters(currentUser, (id, hero) => {
+                currentHeroId = id;
+                currentHero = hero;
+            });
+        }
     }
 });
 

@@ -12,6 +12,7 @@
     <div id="toast-container"></div>
 
     <div id="dashboard-layout">
+        <!-- SIDEBAR LATERAL -->
         <nav id="sidebar" class="sidebar-hidden">
             <div class="sidebar-header">
                 <h2>DUNGEON RUN</h2>
@@ -20,12 +21,14 @@
                 <li><button id="nav-lobby" class="nav-btn active-nav">🏰 Lobby / Jugar</button></li>
                 <li><button id="nav-profile" class="nav-btn">👤 Perfil & Metas</button></li>
                 <li><button id="nav-achievements" class="nav-btn">🏆 Logros</button></li>
+                <li><button id="nav-auction" class="nav-btn">⚖️ Casa de Subastas</button></li>
             </ul>
             <div class="sidebar-footer">
                 <button id="btn-logout" style="background-color: #f38ba8; color:#111;">🚪 Cerrar Sesión</button>
             </div>
         </nav>
 
+        <!-- CONTENIDO PRINCIPAL -->
         <main id="main-content">
             
             <!-- PANTALLA 1: AUTENTICACIÓN -->
@@ -101,6 +104,19 @@
                     <div class="pixel-box" style="border-color: #a6e3a1;">
                         <h3>Héroe Activo</h3>
                         <p id="active-hero-display" style="color: #a6e3a1; margin-bottom: 15px;"></p>
+                        
+                        <!-- EQUIPAMIENTO E INVENTARIO EN LOBBY -->
+                        <div style="background: #11111b; padding: 10px; border: 2px solid #313244; margin-bottom: 15px;">
+                            <h4 style="color: #f9e2af; margin-top:0;">🛡️ EQUIPAMIENTO ACTUAL</h4>
+                            <p style="font-size: 8px;" id="eq-weapon">Arma: Ninguna</p>
+                            <p style="font-size: 8px;" id="eq-armor">Armadura: Ninguna</p>
+                            
+                            <h4 style="color: #f9e2af; margin-top: 10px;">🎒 INVENTARIO DE ÍTEMS</h4>
+                            <div id="hero-inventory-list" style="display: flex; flex-direction: column; gap: 5px; max-height: 120px; overflow-y: auto;">
+                                <span style="font-size: 8px; color: #6c7086;">Inventario vacío</span>
+                            </div>
+                        </div>
+
                         <button id="btn-change-hero" style="background-color: #fab387; color:#111;">🔄 Cambiar de Personaje</button>
                     </div>
 
@@ -157,6 +173,26 @@
                 <div id="achievements-list"></div>
             </div>
 
+            <!-- CASA DE SUBASTAS -->
+            <div id="screen-auction" class="screen">
+                <h1>CASA DE SUBASTAS</h1>
+                <div class="pixel-box" style="border-color: #fab387;">
+                    <h3 style="color: #fab387; margin-top:0;">📜 Lotes Activos del Reino</h3>
+                    <div id="auction-market-list" style="max-height: 200px; overflow-y: auto; margin-bottom: 15px;">
+                        <p style="font-size: 8px; color: #6c7086;">No hay objetos en subasta actualmente.</p>
+                    </div>
+                </div>
+
+                <div class="pixel-box">
+                    <h3>💰 Vender un Ítem de tu Inventario</h3>
+                    <select id="auction-sell-select" class="pixel-select" style="margin-bottom: 10px;">
+                        <option value="">Selecciona un ítem para subastar...</option>
+                    </select>
+                    <input type="number" id="auction-sell-price" placeholder="Precio en Oro (Ej: 50)" min="1" style="margin-bottom: 10px;">
+                    <button id="btn-publish-auction" style="background-color: #fab387; color: #111;">Publicar en Subasta</button>
+                </div>
+            </div>
+
             <!-- CAMPAMENTO -->
             <div id="screen-campfire" class="screen">
                 <h1 style="color: #fab387;">🔥 CAMPAMENTO - FOGATA 🔥</h1>
@@ -187,7 +223,6 @@
                 
                 <div class="pixel-box" style="text-align: center;">
                     <img id="story-image" src="" alt="Escena" style="max-width: 180px; height: auto; image-rendering: pixelated; margin: 0 auto 15px auto; display: none; border: 2px solid #45475a;">
-                    <!-- Contenedor con ancho fluido estricto para que el texto nunca desborde -->
                     <div style="width: 100%; overflow: hidden;">
                         <p id="story-text" style="font-size: 10px; line-height: 1.8; color: #cdd6f4; text-align: left; background: #11111b; padding: 15px; border: 2px solid #313244; margin:0; width: 100%; box-sizing: border-box; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap;"></p>
                     </div>
@@ -228,11 +263,36 @@
         </main>
     </div>
 
+    <!-- MODAL GENERAL -->
     <div id="custom-modal" class="modal-overlay" style="display:none;">
         <div class="modal-content pixel-box">
             <h3 id="modal-title" style="margin-top:0; color:#f9e2af;">MENSAJE</h3>
             <p id="modal-message" style="line-height:1.6; margin-bottom: 20px;"></p>
             <button id="btn-modal-close">Aceptar</button>
+        </div>
+    </div>
+
+    <!-- MODAL LEVEL UP -->
+    <div id="level-up-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-content pixel-box" style="border-color: #f9e2af;">
+            <h3 style="margin-top:0; color:#f9e2af;">🌟 ¡NIVEL ALCANZADO! 🌟</h3>
+            <p id="level-up-message" style="line-height:1.6; margin-bottom: 15px; font-size: 8px;">¡Has subido de nivel! Tienes 1 punto disponible para mejorar un atributo.</p>
+            
+            <div style="background: #11111b; padding: 12px; border: 2px solid #313244; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span>STR: <strong id="levelup-str" style="color: #a6e3a1;">10</strong></span>
+                    <button type="button" id="btn-levelup-str" style="width: 40px; padding: 4px; margin:0;">+1</button>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span>DEX: <strong id="levelup-dex" style="color: #a6e3a1;">10</strong></span>
+                    <button type="button" id="btn-levelup-dex" style="width: 40px; padding: 4px; margin:0;">+1</button>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>INT: <strong id="levelup-int" style="color: #a6e3a1;">10</strong></span>
+                    <button type="button" id="btn-levelup-int" style="width: 40px; padding: 4px; margin:0;">+1</button>
+                </div>
+            </div>
+            <button id="btn-confirm-levelup" disabled style="opacity: 0.5;">Confirmar Atributo</button>
         </div>
     </div>
 

@@ -1,169 +1,193 @@
-// story-system.js - Motor de Narrativa, Nodos, Decisiones e Imágenes Dinámicas para Dungeon Run
+// story-system.js - Motor Narrativo Avanzado con Múltiples Batallas, Tiradas de Suerte y Misiones de Entrega
 
 export const storyNodes = {
-    // 1. NODO INICIAL: LA TAVERNA
+    // ==========================================
+    // ARCO 1: LA MISIÓN DE LA GEMA PERDIDA DEL MAGO
+    // ==========================================
     start_tavern: {
-        title: "LA TABERNA DEL DRAGÓN TUERTO",
-        text: "Están todos festejando alrededor de una cálida fogata en la taberna, bebiendo jarras de hidromiel. Un misterioso mago encapuchado se te acerca con un pergamino antiguo manchado de cera negra, advirtiendo sobre catacumbas malditas llenas de riquezas y peligros.",
+        title: "LA TAVERNA DEL DRAGÓN TUERTO",
+        text: "El calor de la fogata ilumina la taberna. Un anciano mago de túnica raída te intercepta con urgencia: 'Perdí mi Gema de Fuego Estelar en las profundidades de la cripta maldita. Si me la traes de regreso, te recompensaré con creces'.",
         defaultImage: "./assets/sprites/Campfire_4x.png",
         options: [
-            { text: "Aceptar la misión del pergamino e ir a las ruinas malditas.", nextNode: "ruins_entrance" },
-            { text: "Exigir una paga por adelantado usando astucia.", check: "int", dc: 12, successNode: "tavern_negotiate_success", failNode: "ruins_entrance" },
-            { text: "Ignorar al mago y buscar un contrato alternativo en el tablón del gremio.", nextNode: "guild_board" }
+            { text: "Aceptar la misión y marchar hacia las Catacumbas.", nextNode: "crypt_entrance" },
+            { text: "Intentar extorsionarlo para conseguir oro por adelantado.", check: "int", dc: 12, successNode: "tavern_extra_gold", failNode: "crypt_entrance" },
+            { text: "Rechazarlo e ir al Tablón de Contratos del Gremio.", nextNode: "guild_board" }
         ]
     },
 
-    // 2. NEGOCIACIÓN EXITOSA EN LA TAVERNA
-    tavern_negotiate_success: {
-        title: "EL ORO DEL MAGO",
-        text: "Con palabras elocuentes, convences al mago de soltar 30 monedas de oro antes de partir. 'Más vale prevenir', murmura mientras te entrega la seña y señala la entrada secreta.",
+    tavern_extra_gold: {
+        title: "NEGOCIACIÓN EXITOSA",
+        text: "El mago frunce el ceño, pero accede a darte 25 monedas de oro para provisiones. 'No decepciones a las artes arcanas', te advierte.",
         defaultImage: "./assets/sprites/Campfire_4x.png",
         options: [
-            { text: "marchar hacia las ruinas con los bolsillos llenos de oro.", nextNode: "ruins_entrance" }
+            { text: "Partir con el oro hacia las Catacumbas.", nextNode: "crypt_entrance" }
         ]
     },
 
-    // 3. TABLÓN DEL GREMIO (ALTERNATIVA)
     guild_board: {
-        title: "EL TABLÓN DE LAS CODOS ROTOS",
-        text: "El tablón está repleto de avisos de recompensa. El más suculento habla de una cripta infestada de ratas gigantes y un cofre de los lamentos olvidado.",
+        title: "EL TABLÓN DE LAS ALIMAÑAS",
+        text: "Prefieres ignorar al mago y buscas un contrato secundario en el tablón: limpiar las cloacas infestadas de ratas y bestias.",
         defaultImage: "./assets/sprites/Campfire_4x.png",
         options: [
-            { text: "Aceptar el contrato de las Cloacas Infestadas.", nextNode: "start_combat_rats" },
-            { text: "Volver a la fogata principal con el grupo.", nextNode: "start_tavern" }
+            { text: "Aceptar el contrato de las cloacas (Combate rápido).", nextNode: "start_combat_rats" },
+            { text: "Volver con el mago y aceptar su misión de la gema.", nextNode: "crypt_entrance" }
         ]
     },
 
-    // 4. ENTRADA A LAS RUINAS MALDITAS
-    ruins_entrance: {
-        title: "LAS RUINAS DEL VALLE OSCURO",
-        text: "La niebla cubre la escalinata de piedra carcomida por el tiempo. Al fondo, unas puertas de hierro forjado con runas de sangre crujen tenuemente con el viento helado.",
+    // ==========================================
+    // ETAPA 1: LAS CATACUMBAS Y PRIMER COMBATE
+    // ==========================================
+    crypt_entrance: {
+        title: "LAS PUERTAS DE LA CRIPTA",
+        text: "Llegas al mausoleo abandonado. La puerta de piedra está sellada con lodo y raíces centenarias. Un pestilente olor a goblin inunda el ambiente.",
         defaultImage: "./assets/sprites/Campfire_4x.png",
         options: [
-            { text: "Forzar las puertas pesadas de hierro con fuerza bruta.", check: "str", dc: 13, successNode: "ruins_hallway", failNode: "ruins_trap_fail" },
-            { text: "Buscar un mecanismo oculto o trampa en los muros.", check: "int", dc: 11, successNode: "ruins_secret_path", failNode: "ruins_hallway" }
+            { text: "Forzar la puerta pesada con fuerza bruta.", check: "str", dc: 13, successNode: "crypt_hallway_safe", failNode: "crypt_door_trap" },
+            { text: "Buscar un mecanismo de apertura sigiloso.", check: "dex", dc: 12, successNode: "crypt_hallway_safe", failNode: "crypt_door_trap" }
         ]
     },
 
-    // 5. TRAMPA FALLIDA EN LAS RUINAS
-    ruins_trap_fail: {
-        title: "¡TRAMPA DE DARDOS!",
-        text: "Al empujar la puerta sin cuidado, una losa se hunde bajo tus pies y una lluvia de dardos envenenados sale de las paredes. Te sacudes el dolor, pero logras entrar.",
+    crypt_door_trap: {
+        title: "¡TRAMPA DE LOSAS!",
+        text: "Al empujar mal la piedra, se activa un pestillo oculto que deja caer escombros sobre ti. Te golpeas el hombro antes de lograr entrar al pasillo oscuro.",
         defaultImage: "./assets/sprites/goblin.png",
         options: [
-            { text: "Avanzar adolorido hacia el gran salón.", nextNode: "ruins_hallway" }
+            { text: "Avanzar adolorido hacia el interior.", nextNode: "crypt_hallway_safe" }
         ]
     },
 
-    // 6. CAMINO SECRETO EN LAS RUINAS
-    ruins_secret_path: {
-        title: "EL PASadizo del TESORO OCULTO",
-        text: "Descubres una palanca disimulada tras una gárgola de piedra. Se abre un nicho secreto que contiene un frasco brillante y 50 monedas de oro antiguo.",
-        defaultImage: "./assets/sprites/Campfire_4x.png",
-        options: [
-            { text: "Guardar el oro y continuar hacia el salón principal.", nextNode: "ruins_hallway" }
-        ]
-    },
-
-    // 7. GRAN SALÓN DE LAS RUINAS (ENCUENTRO DE GOBLIN)
-    ruins_hallway: {
-        title: "EL SALÓN DE LOS SUSURROS",
-        text: "Te adentras en un vasto salón flanqueado por estatuas decapitadas. De las sombras brota un gruñido amenazante: ¡Un Goblin Asaltante equipado con una daga herrumbrosa bloquea el paso hacia el tesoro!",
+    crypt_hallway_safe: {
+        title: "EL PASILLO DE LAS TRAMPAS",
+        text: "Avanzas por el corredor húmedo. De repente, de las sombras salta una criatura chillona con una daga oxidada: ¡Un Goblin explorador bloquea el paso obligatorio!",
         defaultImage: "./assets/sprites/goblin.png",
         options: [
-            { text: "Desenvainar el arma y abalanzarte sobre el Goblin.", nextNode: "start_combat_goblin" },
-            { text: "Intentar sigilosamente rodearlo usando las sombras.", check: "dex", dc: 14, successNode: "sneak_success", failNode: "start_combat_goblin" }
+            { text: "¡Atacar y librar el primer combate de la mazmorra!", nextNode: "start_combat_goblin_1" }
         ]
     },
 
-    // 8. SIGILO EXITOSO
-    sneak_success: {
-        title: "SOMBRA EVASIVA",
-        text: "Te deslizas con la agilidad de un fantasma entre los pilares. El goblin ni se percata de tu presencia, dejándote vía libre hacia la cámara del tesoro principal.",
-        defaultImage: "./assets/sprites/goblin.png",
-        options: [
-            { text: "Entrar triunfante en la Cámara del Tesoro.", nextNode: "treasure_chamber" }
-        ]
-    },
-
-    // 9. COMBATE CONTRA RATAS (DESDE TABLÓN)
-    start_combat_rats: {
-        title: "LAS CLOACAS PROFUNDAS",
-        text: "El agua pestilente te llega a las rodillas. De la oscuridad surgen docenas de ojos rojos: ¡Una horda de Ratas Gigantes salta al ataque!",
-        defaultImage: "./assets/sprites/rat.png",
-        options: [
-            { text: "¡Luchar contra las alimañas!", nextNode: "start_combat_rats_action" }
-        ]
-    },
-
-    // Nodos internos de mapeo de combate
-    start_combat_goblin: {
-        title: "COMBATE: GOBLIN ASALTANTE",
-        text: "El goblin desenvaina su arma corta y lanza un grito de guerra.",
+    // ⚔️ BATALLA 1: Goblin Explorador
+    start_combat_goblin_1: {
+        title: "COMBATE: GOBLIN EXPLORADOR",
+        text: "El goblin se lanza con furia para evitar que sigas avanzando hacia el interior.",
         defaultImage: "./assets/sprites/goblin.png",
         options: []
     },
 
-    // 10. CÁMARA DEL TESORO FINAL
-    treasure_chamber: {
-        title: "EL SANGUINARIO COFRE DEL DRAGÓN",
-        text: "En el centro de la sala y sobre un altar de obsidiana reposa un cofre adornado con joyas carmesí. Sientes una energía mágica palpitar en su interior.",
+    // ==========================================
+    // ETAPA 2: LA SALA INTERMEDIA Y SEGUNDO COMBATE
+    // ==========================================
+    after_combat_goblin_1: {
+        title: "LA CÁMARA DE LOS TRIBUTOS",
+        text: "Tras derrotar al explorador, encuentras un cofre menor y una escalinata que desciende hacia el corazón de la cripta, donde se escucha el eco de una bestia mayor.",
         defaultImage: "./assets/sprites/Campfire_4x.png",
         options: [
-            { text: "Forzar la cerradura con destreza milimétrica.", check: "dex", dc: 12, successNode: "epic_loot", failNode: "mimic_trap" },
-            { text: "Romper la cerradura a golpes limpios.", check: "str", dc: 11, successNode: "normal_loot", failNode: "mimic_trap" }
+            { text: "Investigar el altar en busca de botín.", check: "int", dc: 11, successNode: "found_potions", failNode: "crypt_deeper" },
+            { text: "Bajar directamente a enfrentar al guardián de la gema.", nextNode: "crypt_deeper" }
         ]
     },
 
-    // 11. BOTÍN ÉPICO
-    epic_loot: {
-        title: "¡TESORO LEGENDARIO!",
-        text: "¡Has abierto el cofre con maestría! En su interior encuentras gemas relucientes, un pergamino de poder arcano y una poción extraña que emite luz propia.",
+    found_potions: {
+        title: "ALCANTARILLA DE SUMINISTROS",
+        text: "Descubres un escondite con hierbas curativas y una poción extra para tu inventario.",
         defaultImage: "./assets/sprites/Campfire_4x.png",
         options: [
-            { text: "Celebrar la victoria y regresar a la taberna como héroe.", nextNode: "start_tavern" }
+            { text: "Continuar hacia el santuario interior.", nextNode: "crypt_deeper" }
         ]
     },
 
-    // 12. BOTÍN NORMAL
-    normal_loot: {
-        title: "BOTÍN DE LA CRIPTA",
-        text: "El cofre se abre con estrépito. Consigues un buen fajo de monedas de oro y suministros para continuar tu camino.",
-        defaultImage: "./assets/sprites/Campfire_4x.png",
-        options: [
-            { text: "Continuar la aventura.", nextNode: "start_tavern" }
-        ]
-    },
-
-    // 13. TRAMPA DE MÍMICO (CURIOSIDAD PELIGROSA)
-    mimic_trap: {
-        title: "¡ES UN MÍMICO!",
-        text: "¡El cofre cobra vida de repente con una boca llena de dientes afilados! Te muerde el brazo antes de que puedas reaccionar, pero logras zafarte a golpes y robarle unas pocas monedas de oro de su estómago.",
+    crypt_deeper: {
+        title: "EL SANTUARIO DEL GUARDIÁN",
+        text: "Llegas al altar central. Flotando sobre un pedestal se encuentra la reluciente **Gema de Fuego Estelar**. Pero al acercarte, un enorme Goblin Élite con armadura pesada emerge rugiendo para proteger su tesoro.",
         defaultImage: "./assets/sprites/goblin.png",
         options: [
-            { text: "Retirarse maltrecho pero con vida de la mazmorra.", nextNode: "start_tavern" }
+            { text: "¡Enfrentar al Jefe Guardián por la Gema!", nextNode: "start_combat_boss_goblin" }
         ]
+    },
+
+    // ⚔️ BATALLA 2 (JEFE): Goblin Élite Guardián
+    start_combat_boss_goblin: {
+        title: "JEFE: GOBLIN ÉLITE GUARDIÁN",
+        text: "El líder de los asaltantes blande una maza gigantesca y protege la gema con su vida.",
+        defaultImage: "./assets/sprites/goblin.png",
+        options: []
+    },
+
+    // ==========================================
+    // ETAPA 3: EL VIAJE DE REGRESO Y ENTREGA DE LA MISIÓN
+    // ==========================================
+    after_boss_victory: {
+        title: "LA GEMA RECUPERADA",
+        text: "¡El guardián cae derrotado! Tomas la **Gema de Fuego Estelar** entre tus manos. Sientes su calor místico. Ahora tienes la gema, pero recuerda que el objetivo principal **es regresar a la superficie y llevársela al mago en la taberna**.",
+        defaultImage: "./assets/sprites/Campfire_4x.png",
+        options: [
+            { text: "Emprender el peligroso viaje de regreso a la superficie.", nextNode: "return_journey" }
+        ]
+    },
+
+    return_journey: {
+        title: "EL CAMINO DE VUELTA",
+        text: "Mientras cruzas los túneles oscuros de regreso, un derrumbe bloquea la salida principal. Debes improvisar una ruta alternativa por las antiguas cavernas.",
+        defaultImage: "./assets/sprites/Campfire_4x.png",
+        options: [
+            { text: "Trepar por chimeneas de roca inestables.", check: "dex", dc: 13, successNode: "return_success", failNode: "return_ambush" }
+        ]
+    },
+
+    return_ambush: {
+        title: "¡EMBOSCADA DE ALIMAÑAS!",
+        text: "Una manada de ratas gigantes hambrientas te ataca en la oscuridad durante el desvío. Tienes que abrirte paso a golpes rápidos.",
+        defaultImage: "./assets/sprites/rat.png",
+        options: [
+            { text: "¡Luchar contra la horda para salvar la gema!", nextNode: "start_combat_rats" }
+        ]
+    },
+
+    return_success: {
+        title: "¡SALIDA A LA SUPERFICIE!",
+        text: "Sales exhausto pero triunfante de las catacumbas con la gema intacta. El aire fresco de la noche te revitaliza mientras te diriges de vuelta a la taberna.",
+        defaultImage: "./assets/sprites/Campfire_4x.png",
+        options: [
+            { text: "Entrar a la Taberna del Dragón Tuerto a entregar la gema al mago.", nextNode: "mission_complete" }
+        ]
+    },
+
+    // 🏆 OBJETIVO CUMPLIDO: ENTREGA DE LA MISIÓN
+    mission_complete: {
+        title: "MISIÓN CUMPLIDA: LA RECOMPENSA DEL MAGO",
+        text: "Colocas la Gema de Fuego Estelar sobre la mesa del mago. Sus ojos se iluminan de asombro y gratitud. '¡Lo lograste aventurero! Has salvado mis investigaciones'. Te otorga una enorme recompensa de oro, experiencia y el respeto eterno del gremio.",
+        defaultImage: "./assets/sprites/Campfire_4x.png",
+        options: [
+            { text: "Celebrar en la taberna e iniciar una nueva leyenda.", nextNode: "start_tavern" }
+        ]
+    },
+
+    // Combates secundarios de rutas alternativas
+    start_combat_rats: {
+        title: "COMBATE: MANADA DE RATAS",
+        text: "Las alimañas de las cloacas saltan sobre ti mostrando sus colmillos.",
+        defaultImage: "./assets/sprites/rat.png",
+        options: []
     }
 };
 
-// Sistema de actualización dinámica de imágenes según palabras clave en la narrativa
+// Mapeo dinámico de imágenes según el contexto de la historia
 export function getDynamicImageForText(text, defaultImg) {
     if (!text) return defaultImg;
     const lower = text.toLowerCase();
     
-    if (lower.includes("goblin") || lower.includes("monstruo") || lower.includes("mímico") || lower.includes("ataque")) {
+    if (lower.includes("goblin") || lower.includes("guardián") || lower.includes("monstruo") || lower.includes("jefe")) {
         return "./assets/sprites/goblin.png";
     }
-    if (lower.includes("rata") || lower.includes("cloaca") || lower.includes("alimaña")) {
+    if (lower.includes("rata") || lower.includes("alimaña") || lower.includes("manada")) {
         return "./assets/sprites/rat.png";
     }
-    if (lower.includes("fuego") || lower.includes("taberna") || lower.includes("cofre") || lower.includes("tesoro")) {
+    if (lower.includes("fuego") || lower.includes("taberna") || lower.includes("cofre") || lower.includes("tesoro") || lower.includes("gema")) {
         return "./assets/sprites/Campfire_4x.png";
     }
     return defaultImg;
 }
 
-// Lógica de resolución de votos multijugador y empates
+// Resolución de votaciones en multijugador con manejo de empates
 export function resolveStoryVote(votesObj) {
     const votesArray = Object.values(votesObj);
     if (votesArray.length === 0) return { selectedIndex: 0, isTie: false };
