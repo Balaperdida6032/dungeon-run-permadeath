@@ -44,90 +44,98 @@
                 </div>
             </div>
 
-            <!-- PANTALLA 2: LOBBY PRINCIPAL -->
+            <!-- PANTALLA 2: LOBBY PRINCIPAL (DIVIDIDO EN DOS VISTAS) -->
             <div id="screen-lobby" class="screen">
-                <h1>LOBBY DE AVENTURA</h1>
                 
-                <div class="pixel-box">
-                    <h3>Tus Personajes</h3>
-                    <div id="character-list" style="margin-bottom: 15px;">
-                        <p style="color: #6c7086;">Cargando personajes...</p>
+                <!-- VISTA A: SELECCIÓN / CREACIÓN DE PERSONAJE -->
+                <div id="lobby-view-character">
+                    <h1>SELECCIÓN DE HÉROE</h1>
+                    <div class="pixel-box">
+                        <h3>Tus Personajes</h3>
+                        <div id="character-list" style="margin-bottom: 15px;">
+                            <p style="color: #6c7086;">Cargando personajes...</p>
+                        </div>
+                        <button id="btn-show-creator" style="background-color: #a6e3a1; color: #111;">+ Forjar Nuevo Héroe</button>
                     </div>
-                    <button id="btn-show-creator" style="background-color: #a6e3a1; color: #111;">+ Forjar Nuevo Héroe</button>
-                </div>
 
-                <!-- CREADOR DE HÉROE -->
-                <div id="hero-creator" class="pixel-box" style="display:none;">
-                    <h3>Forjar Nuevo Héroe</h3>
-                    <input type="text" id="hero-name" placeholder="Nombre del Héroe">
-                    
-                    <label for="hero-class">Clase Base:</label>
-                    <select id="hero-class" class="pixel-select">
-                        <option value="Guerrero">Guerrero (Especialista en Fuerza)</option>
-                        <option value="Mago">Mago (Especialista en Inteligencia)</option>
-                        <option value="Pícaro">Pícaro (Especialista en Destreza)</option>
-                    </select>
+                    <!-- CREADOR DE HÉROE -->
+                    <div id="hero-creator" class="pixel-box" style="display:none;">
+                        <h3>Forjar Nuevo Héroe</h3>
+                        <input type="text" id="hero-name" placeholder="Nombre del Héroe">
+                        
+                        <label for="hero-class">Clase Base:</label>
+                        <select id="hero-class" class="pixel-select">
+                            <option value="Guerrero">Guerrero (Especialista en Fuerza)</option>
+                            <option value="Mago">Mago (Especialista en Inteligencia)</option>
+                            <option value="Pícaro">Pícaro (Especialista en Destreza)</option>
+                        </select>
 
-                    <div class="pixel-box" style="margin-top: 10px; background: #11111b;">
-                        <p style="color: #f9e2af; margin-top: 0;">Puntos Libres: <span id="stat-points-left">5</span></p>
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span>STR: <strong id="stat-str">10</strong></span>
-                                <div>
-                                    <button type="button" id="btn-str-minus" style="width: 30px; padding: 4px;">-</button>
-                                    <button type="button" id="btn-str-plus" style="width: 30px; padding: 4px;">+</button>
+                        <div class="pixel-box" style="margin-top: 10px; background: #11111b;">
+                            <p style="color: #f9e2af; margin-top: 0;">Puntos Libres: <span id="stat-points-left">5</span></p>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span>STR: <strong id="stat-str">10</strong></span>
+                                    <div>
+                                        <button type="button" id="btn-str-minus" style="width: 30px; padding: 4px;">-</button>
+                                        <button type="button" id="btn-str-plus" style="width: 30px; padding: 4px;">+</button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span>DEX: <strong id="stat-dex">10</strong></span>
-                                <div>
-                                    <button type="button" id="btn-dex-minus" style="width: 30px; padding: 4px;">-</button>
-                                    <button type="button" id="btn-dex-plus" style="width: 30px; padding: 4px;">+</button>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span>DEX: <strong id="stat-dex">10</strong></span>
+                                    <div>
+                                        <button type="button" id="btn-dex-minus" style="width: 30px; padding: 4px;">-</button>
+                                        <button type="button" id="btn-dex-plus" style="width: 30px; padding: 4px;">+</button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span>INT: <strong id="stat-int">10</strong></span>
-                                <div>
-                                    <button type="button" id="btn-int-minus" style="width: 30px; padding: 4px;">-</button>
-                                    <button type="button" id="btn-int-plus" style="width: 30px; padding: 4px;">+</button>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span>INT: <strong id="stat-int">10</strong></span>
+                                    <div>
+                                        <button type="button" id="btn-int-minus" style="width: 30px; padding: 4px;">-</button>
+                                        <button type="button" id="btn-int-plus" style="width: 30px; padding: 4px;">+</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <button id="btn-create-hero">Guardar Personaje</button>
-                    <button id="btn-cancel-creator" style="background-color: #f38ba8; color:#111;">Cancelar</button>
+                        <button id="btn-create-hero">Guardar Personaje</button>
+                        <button id="btn-cancel-creator" style="background-color: #f38ba8; color:#111;">Cancelar</button>
+                    </div>
                 </div>
 
-                <!-- SECCIÓN DE UNIRSE O CREAR PARTIDAS -->
-                <div class="pixel-box" id="party-section" style="display:none;">
-                    <h3>Aventura Multijugador / Solitario</h3>
-                    <p id="active-hero-display" style="color: #a6e3a1; margin-bottom: 15px;"></p>
+                <!-- VISTA B: MODO DE AVENTURA (SE MUESTRA TRAS ELEGIR HÉROE) -->
+                <div id="lobby-view-adventure" style="display: none;">
+                    <h1>MODO DE AVENTURA</h1>
                     
-                    <div style="margin-bottom: 15px;">
+                    <div class="pixel-box" style="border-color: #a6e3a1;">
+                        <h3>Héroe Activo</h3>
+                        <p id="active-hero-display" style="color: #a6e3a1; margin-bottom: 15px;"></p>
+                        <button id="btn-change-hero" style="background-color: #fab387; color:#111;">🔄 Cambiar de Personaje</button>
+                    </div>
+
+                    <div class="pixel-box">
+                        <h3>Crear Partida</h3>
                         <label style="font-size: 8px; display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
                             <input type="checkbox" id="chk-is-public" checked style="width: auto; margin:0;"> 
-                            <span>Hacer la sala PÚBLICA (visible para otros jugadores)</span>
+                            <span>Sala PÚBLICA (visible en el listado para otros jugadores)</span>
                         </label>
-                        <button id="btn-create-room" style="background-color: #a6e3a1; color: #111;">🏰 Crear Nueva Sala</button>
+                        <button id="btn-create-room" style="background-color: #a6e3a1; color: #111;">🏰 Crear Sala (Multijugador / Solitario)</button>
                     </div>
 
-                    <hr style="border-color: #45475a; margin: 15px 0;">
-
-                    <input type="text" id="room-code-input" placeholder="Código de Sala (Ej: AB12)">
-                    <button id="btn-join-room">Unirse con Código</button>
-                    
-                    <button id="btn-change-hero" style="background-color: #fab387; color:#111; margin-top: 15px;">Cambiar de Personaje</button>
-                </div>
-
-                <!-- LISTA DE PARTIDAS PÚBLICAS -->
-                <div class="pixel-box" id="public-rooms-section" style="display:none;">
-                    <h3>🌐 Partidas Públicas Disponibles</h3>
-                    <div id="public-rooms-list" style="margin-bottom: 10px;">
-                        <p style="color: #6c7086; font-size: 8px;">No hay salas públicas en este momento.</p>
+                    <div class="pixel-box">
+                        <h3>Unirse por Código Privado</h3>
+                        <input type="text" id="room-code-input" placeholder="Código de Sala (Ej: AB12)">
+                        <button id="btn-join-room">Unirse con Código</button>
                     </div>
-                    <button id="btn-refresh-rooms" style="background-color: #89b4fa; color:#111;">🔄 Actualizar Lista</button>
+
+                    <div class="pixel-box">
+                        <h3>🌐 Partidas Públicas Disponibles</h3>
+                        <div id="public-rooms-list" style="margin-bottom: 10px;">
+                            <p style="color: #6c7086; font-size: 8px;">No hay salas públicas abiertas en este momento.</p>
+                        </div>
+                        <button id="btn-refresh-rooms" style="background-color: #89b4fa; color:#111;">🔄 Actualizar Lista</button>
+                    </div>
                 </div>
+
             </div>
 
             <!-- PANTALLA DE PERFIL Y CAMINO DE NIVELES -->

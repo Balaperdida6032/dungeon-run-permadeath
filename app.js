@@ -93,7 +93,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
-    // CREADOR DE PERSONAJES
+    // CREADOR DE PERSONAJES Y VISTAS DEL LOBBY
     const classSelect = document.getElementById('hero-class');
     function updateStatUI() {
         document.getElementById('stat-points-left').innerText = availablePoints;
@@ -128,21 +128,28 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function showLobbyView(viewName) {
+        const viewChar = document.getElementById('lobby-view-character');
+        const viewAdv = document.getElementById('lobby-view-adventure');
+        
+        if (viewName === 'character') {
+            viewChar.style.display = 'block';
+            viewAdv.style.display = 'none';
+        } else {
+            viewChar.style.display = 'none';
+            viewAdv.style.display = 'block';
+        }
+    }
+
     document.getElementById('btn-show-creator').addEventListener('click', () => {
         document.getElementById('hero-creator').style.display = 'block';
         document.getElementById('btn-show-creator').style.display = 'none';
-        document.getElementById('party-section').style.display = 'none';
-        document.getElementById('public-rooms-section').style.display = 'none';
         resetStatsForClass("Guerrero");
     });
 
     document.getElementById('btn-cancel-creator').addEventListener('click', () => {
         document.getElementById('hero-creator').style.display = 'none';
         document.getElementById('btn-show-creator').style.display = 'block';
-        if (currentHero) {
-            document.getElementById('party-section').style.display = 'block';
-            document.getElementById('public-rooms-section').style.display = 'block';
-        }
     });
 
     async function loadUserCharacters(uid) {
@@ -155,8 +162,7 @@ window.addEventListener('DOMContentLoaded', () => {
             listDiv.innerHTML = `<p style="color: #fab387;">No tienes personajes creados. ¡Forja uno!</p>`;
             document.getElementById('hero-creator').style.display = 'block';
             document.getElementById('btn-show-creator').style.display = 'none';
-            document.getElementById('party-section').style.display = 'none';
-            document.getElementById('public-rooms-section').style.display = 'none';
+            showLobbyView('character');
             return;
         }
 
@@ -171,25 +177,25 @@ window.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', () => selectCharacter(heroId, hero));
             listDiv.appendChild(btn);
         });
+
+        showLobbyView('character');
     }
 
     function selectCharacter(heroId, heroData) {
         currentHeroId = heroId;
         currentHero = heroData;
-        document.getElementById('hero-creator').style.display = 'none';
-        document.getElementById('btn-show-creator').style.display = 'none';
-        document.getElementById('party-section').style.display = 'block';
-        document.getElementById('public-rooms-section').style.display = 'block';
+        showLobbyView('adventure');
+
         document.getElementById('active-hero-display').innerHTML = `
-            <strong>Héroe Seleccionado:</strong> ${currentHero.name} (${currentHero.clazz})<br>
+            <strong>Héroe Activo:</strong> ${currentHero.name} (${currentHero.clazz})<br>
             Nivel: ${currentHero.level} | HP: ❤️ ${currentHero.hp}/${currentHero.maxHp} | Oro: 🪙 ${currentHero.gold}
         `;
     }
 
     document.getElementById('btn-change-hero').addEventListener('click', () => {
-        currentHero = null; currentHeroId = null;
-        document.getElementById('party-section').style.display = 'none';
-        document.getElementById('public-rooms-section').style.display = 'none';
+        currentHero = null; 
+        currentHeroId = null;
+        document.getElementById('hero-creator').style.display = 'none';
         document.getElementById('btn-show-creator').style.display = 'block';
         loadUserCharacters(currentUser.uid);
     });
@@ -302,10 +308,10 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('campfire-room-code').innerText = code;
         
         attachRoomListener(code, (roomData) => {
-            // Comprobar si fui expulsado
             if (roomData.players && !roomData.players[currentUser.uid]) {
                 leaveRoomListener();
                 switchScreen('screen-lobby');
+                showLobbyView('adventure');
                 showCustomModal("Has sido expulsado de la sala por el host.", "❌ EXPULSADO");
                 return;
             }
@@ -440,7 +446,7 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-leave-campfire').addEventListener('click', async () => {
         leaveRoomListener();
         switchScreen('screen-lobby');
-        await loadUserCharacters(currentUser.uid);
+        showLobbyView('adventure');
     });
 
     // SISTEMA NARRATIVO Y DE VOTACIÓN
@@ -701,6 +707,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         currentHero = null;
                         currentHeroId = null;
                         switchScreen('screen-lobby');
+                        showLobbyView('adventure');
                         await loadUserCharacters(currentUser.uid);
                     }
                 );
@@ -745,6 +752,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
 
         switchScreen('screen-lobby');
+        showLobbyView('adventure');
         await loadUserCharacters(currentUser.uid);
     }
 });
