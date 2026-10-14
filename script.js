@@ -1,57 +1,22 @@
-// Importaciones de los SDKs de Firebase v10
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+// script.js - Lógica principal del Juego y UI
 import { 
-    getAuth, 
-    GoogleAuthProvider, 
-    signInWithPopup, 
-    signInWithEmailAndPassword, 
-    createUserWithEmailAndPassword, 
-    signOut, 
-    onAuthStateChanged 
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    auth, db, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword, signOut, onAuthStateChanged,
+    doc, setDoc, getDoc, updateDoc, onSnapshot, deleteDoc 
+} from './firebase-config.js';
+
 import { 
-    getFirestore, 
-    doc, 
-    setDoc, 
-    getDoc, 
-    updateDoc, 
-    onSnapshot, 
-    deleteDoc 
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-// Tu configuración de Firebase
-const firebaseConfig = {
-    apiKey: "AIzaSyBEcaaWX_6upGHY_2I5cSy3j4XZh50Q410",
-    authDomain: "dungeon-run-permadeath.firebaseapp.com",
-    projectId: "dungeon-run-permadeath",
-    storageBucket: "dungeon-run-permadeath.firebasestorage.app",
-    messagingSenderId: "1057265525316",
-    appId: "1:1057265525316:web:85276d443ff52ae9b3d211",
-    measurementId: "G-J4JGJSCPS8"
-};
-
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const auth = getAuth(app);
-const db = getFirestore(app);
+    rollDice, getStatModifier, getRandomEnemyForLevel 
+} from './dnd-mechanics.js';
 
 let currentUser = null;
 let currentHero = null;
 let currentRoomId = null;
 let unsubscribeRoom = null;
 
-// Funciones Auxiliares D&D: Dados y Modificadores
-function rollDice(sides) {
-    return Math.floor(Math.random() * sides) + 1;
-}
-
-function getStatModifier(statScore) {
-    return Math.floor((statScore - 10) / 2);
-}
-
 window.addEventListener('DOMContentLoaded', () => {
 
+    // Observer de Autenticación
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             currentUser = user;
@@ -64,33 +29,32 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Eventos Auth
     document.getElementById('btn-login').addEventListener('click', async () => {
         const email = document.getElementById('auth-email').value;
         const pass = document.getElementById('auth-password').value;
-        if (!email || !pass) return alert("Ingresa tu correo y contraseña.");
-        try {
-            await signInWithEmailAndPassword(auth, email, pass);
-        } catch (e) { alert("Error: " + e.message); }
+        if (!email || !pass) return alert("Ingresa correo y contraseña.");
+        try { await signInWithEmailAndPassword(auth, email, pass); } 
+        catch (e) { alert("Error: " + e.message); }
     });
 
     document.getElementById('btn-register').addEventListener('click', async () => {
         const email = document.getElementById('auth-email').value;
         const pass = document.getElementById('auth-password').value;
-        if (!email || !pass) return alert("Ingresa un correo y contraseña.");
-        try {
-            await createUserWithEmailAndPassword(auth, email, pass);
-        } catch (e) { alert("Error: " + e.message); }
+        if (!email || !pass) return alert("Ingresa correo y contraseña.");
+        try { await createUserWithEmailAndPassword(auth, email, pass); } 
+        catch (e) { alert("Error: " + e.message); }
     });
 
     document.getElementById('btn-google').addEventListener('click', async () => {
         const provider = new GoogleAuthProvider();
-        try {
-            await signInWithPopup(auth, provider);
-        } catch (e) { alert("Error con Google: " + e.message); }
+        try { await signInWithPopup(auth, provider); } 
+        catch (e) { alert("Error con Google: " + e.message); }
     });
 
     document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
+    // Cargar Datos del Héroe
     async function loadHeroData(uid) {
         const heroDocRef = doc(db, "heroes", uid);
         const heroSnap = await getDoc(heroDocRef);
@@ -101,11 +65,10 @@ window.addEventListener('DOMContentLoaded', () => {
             currentHero = heroSnap.data();
             heroCreatorDiv.style.display = 'none';
             
-            // Asignación de Stats según Clase si es versión previa
             if (!currentHero.stats) {
                 if (currentHero.clazz === "Guerrero") currentHero.stats = { str: 16, dex: 12, int: 8, ac: 15 };
                 else if (currentHero.clazz === "Mago") currentHero.stats = { str: 8, dex: 14, int: 16, ac: 12 };
-                else currentHero.stats = { str: 10, dex: 16, int: 12, ac: 14 }; // Pícaro
+                else currentHero.stats = { str: 10, dex: 16, int: 12, ac: 14 };
             }
 
             heroInfoDiv.innerHTML = `
@@ -121,6 +84,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Creación de Héroe
     document.getElementById('btn-create-hero').addEventListener('click', async () => {
         const name = document.getElementById('hero-name').value.trim();
         const clazz = document.getElementById('hero-class').value;
@@ -132,36 +96,33 @@ window.addEventListener('DOMContentLoaded', () => {
         else if (clazz === "Pícaro") stats = { str: 10, dex: 16, int: 12, ac: 14 };
 
         const newHero = {
-            name,
-            clazz,
-            level: 1,
-            exp: 0,
-            gold: 50,
-            hp: 100,
-            maxHp: 100,
-            potions: 3,
-            stats
+            name, clazz, level: 1, exp: 0, gold: 50, hp: 100, maxHp: 100, potions: 3, stats
         };
 
         await setDoc(doc(db, "heroes", currentUser.uid), newHero);
         await loadHeroData(currentUser.uid);
     });
 
+    // Crear Sala Multijugador
     document.getElementById('btn-create-room').addEventListener('click', async () => {
         if (!currentHero) return alert("Necesitas forjar un héroe primero.");
         const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
         
+        // Generar enemigo según el nivel del Héroe Creador
+        const enemy = getRandomEnemyForLevel(currentHero.level);
+
         const roomData = {
             host: currentUser.uid,
             status: "fighting",
-            enemy: { name: "Rey Esqueleto", hp: 120, maxHp: 120, ac: 14, attackBonus: 4, damageDice: 8 },
-            log: ["La party ha descendido a las sombras de la mazmorra..."]
+            enemy: enemy,
+            log: [enemy.introText]
         };
 
         await setDoc(doc(db, "rooms", roomCode), roomData);
         joinRoomListener(roomCode);
     });
 
+    // Unirse a Sala
     document.getElementById('btn-join-room').addEventListener('click', async () => {
         if (!currentHero) return alert("Necesitas forjar un héroe primero.");
         const code = document.getElementById('room-code-input').value.trim().toUpperCase();
@@ -189,19 +150,25 @@ window.addEventListener('DOMContentLoaded', () => {
     function updateDungeonUI(room) {
         const hasEnemy = room.enemy && room.enemy.hp > 0;
 
-        // Deshabilitar/Habilitar acciones si hay enemigo presente
         document.getElementById('btn-action-attack').disabled = !hasEnemy;
         document.getElementById('btn-action-skill').disabled = !hasEnemy;
+
+        const enemyImg = document.getElementById('enemy-portrait');
 
         if (hasEnemy) {
             const enemyHpPct = (room.enemy.hp / room.enemy.maxHp) * 100;
             document.getElementById('enemy-name').innerText = `${room.enemy.name} (CA: ${room.enemy.ac})`;
             document.getElementById('enemy-hp-bar').style.width = Math.max(0, enemyHpPct) + '%';
             document.getElementById('enemy-hp-text').innerText = `HP: ${Math.max(0, room.enemy.hp)}/${room.enemy.maxHp}`;
+            if (enemyImg) {
+                enemyImg.src = room.enemy.image || "";
+                enemyImg.style.display = 'block';
+            }
         } else {
             document.getElementById('enemy-name').innerText = "Sin enemigo en combate";
             document.getElementById('enemy-hp-bar').style.width = '0%';
             document.getElementById('enemy-hp-text').innerText = `HP: 0/0`;
+            if (enemyImg) enemyImg.style.display = 'none';
         }
 
         const logContainer = document.getElementById('combat-log');
@@ -210,12 +177,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
         if (room.enemy.hp <= 0 && room.status === "fighting") {
             room.status = "victory";
-            alert("¡Enemigo derrotado! Te extraes con éxito (+50 EXP, +30 Oro).");
-            leaveDungeonAndReward(50, 30);
+            const expReward = room.enemy.expReward || 50;
+            const goldReward = room.enemy.goldReward || 30;
+            alert(`¡Enemigo derrotado! Te extraes con éxito (+${expReward} EXP, +${goldReward} Oro).`);
+            leaveDungeonAndReward(expReward, goldReward);
         }
     }
 
-    // ACCIÓN: ATAQUE ESTILO D&D 5e
+    // Ataque D&D
     document.getElementById('btn-action-attack').addEventListener('click', async () => {
         if (!currentRoomId) return;
         const roomRef = doc(db, "rooms", currentRoomId);
@@ -225,38 +194,33 @@ window.addEventListener('DOMContentLoaded', () => {
         const room = roomSnap.data();
         if (room.enemy.hp <= 0) return alert("No hay ningún enemigo activo para atacar.");
 
-        // 1. Determinar Atributo Clave de Ataque
         let statValue = currentHero.stats.str;
-        let weaponDice = 8; // d8 (Guerrero)
+        let weaponDice = 8;
         if (currentHero.clazz === "Pícaro") { statValue = currentHero.stats.dex; weaponDice = 6; }
         else if (currentHero.clazz === "Mago") { statValue = currentHero.stats.int; weaponDice = 10; }
 
         const statMod = getStatModifier(statValue);
-        const proficiencyBonus = 2; // Bonificador de competencia nivel 1
+        const proficiencyBonus = 2;
         
-        // 2. Tirada de Impacto (d20)
         const d20Roll = rollDice(20);
         const totalAttackRoll = d20Roll + statMod + proficiencyBonus;
 
         if (d20Roll === 1) {
-            // Pifia / Fallo Crítico
             room.log.push(`❌ ${currentHero.name} tiró un 1 (¡Pifia!). Su ataque falla miserablemente.`);
         } else if (d20Roll === 20 || totalAttackRoll >= room.enemy.ac) {
-            // Acierto Crítico o Impacto Exitoso
             const isCritical = (d20Roll === 20);
             let damage = rollDice(weaponDice) + statMod;
-            if (isCritical) damage += rollDice(weaponDice); // Doble dado en crítico
+            if (isCritical) damage += rollDice(weaponDice);
             if (damage < 1) damage = 1;
 
             room.enemy.hp -= damage;
             const critText = isCritical ? "💥 ¡GOLPE CRÍTICO! " : "";
             room.log.push(`${critText}🎯 ${currentHero.name} tiró ${d20Roll}+${statMod+proficiencyBonus}=${totalAttackRoll} vs CA ${room.enemy.ac}. ¡Impacta e inflige ${damage} de daño!`);
         } else {
-            // Fallo por CA alta
             room.log.push(`🛡️ ${currentHero.name} tiró ${d20Roll}+${statMod+proficiencyBonus}=${totalAttackRoll} vs CA ${room.enemy.ac}. El ataque es bloqueado.`);
         }
 
-        // 3. Contraataque del Enemigo (Si sigue vivo)
+        // Contraataque enemigo
         if (room.enemy.hp > 0) {
             const enemyD20 = rollDice(20);
             const enemyAttackTotal = enemyD20 + room.enemy.attackBonus;
@@ -270,7 +234,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 room.log.push(`🛡️ ${room.enemy.name} intenta atacarte (Tirada: ${enemyAttackTotal} vs tu CA ${currentHero.stats.ac}), pero falló.`);
             }
 
-            // Permadeath
             if (currentHero.hp <= 0) {
                 alert("💀 ¡HAS MUERTO EN LA MAZMORRA! Tu personaje ha sido borrado permanentemente.");
                 await deleteDoc(doc(db, "heroes", currentUser.uid));

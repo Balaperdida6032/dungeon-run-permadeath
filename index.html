@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dungeon Run: Permadeath</title>
-    <!-- Fuente Pixel Art Retro -->
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -27,18 +26,16 @@
         <!-- PANTALLA 2: LOBBY / SELECCIÓN DE HÉROE -->
         <div id="screen-lobby" class="screen">
             <h1>LOBBY DEL HÉROE</h1>
-            <div id="hero-info" class="pixel-box">
-                <!-- Carga dinámicamente -->
-            </div>
+            <div id="hero-info" class="pixel-box"></div>
             
             <div id="hero-creator" class="pixel-box" style="display:none;">
                 <h3>Crear Personaje</h3>
                 <input type="text" id="hero-name" placeholder="Nombre del Héroe">
                 <label for="hero-class">Clase:</label>
                 <select id="hero-class" class="pixel-select">
-                    <option value="Guerrero">Guerrero (Fuerte y Resistente)</option>
-                    <option value="Mago">Mago (Daño Mágico Alto)</option>
-                    <option value="Pícaro">Pícaro (Veloz y Crítico)</option>
+                    <option value="Guerrero">Guerrero (STR y CA Alta)</option>
+                    <option value="Mago">Mago (INT y Daño Mágico)</option>
+                    <option value="Pícaro">Pícaro (DEX y Movilidad)</option>
                 </select>
                 <button id="btn-create-hero">Forjar Héroe</button>
             </div>
@@ -60,8 +57,9 @@
                     <h3>Héroes en la Party</h3>
                     <div id="party-members-list"></div>
                 </div>
-                <div class="pixel-box" style="flex:1;">
+                <div class="pixel-box" style="flex:1; text-align:center;">
                     <h3>Enemigo</h3>
+                    <img id="enemy-portrait" src="" alt="Enemigo Pixel Art" style="width: 80px; height: 80px; image-rendering: pixelated; margin: 0 auto 10px auto; display:none;">
                     <div id="enemy-name" class="text-warning">Cargando...</div>
                     <div class="hp-bar-container"><div id="enemy-hp-bar" class="hp-bar-fill"></div></div>
                     <span id="enemy-hp-text">HP: --/--</span>
@@ -80,7 +78,7 @@
         </div>
     </div>
 
-    <!-- Script principal como módulo -->
+    <!-- Script Principal como Módulo ES6 -->
     <script type="module" src="script.js"></script>
 </body>
 </html>
