@@ -1,6 +1,5 @@
 // multiplayer-room.js - Gestión de Salas, Fogata y Sincronización
 import { db, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot } from './firebase-config.js';
-import { getRandomEnemyForLevel } from './dnd-mechanics.js';
 import { switchScreen, showCustomModal } from './ui-controller.js';
 
 export let currentRoomId = null;
@@ -11,16 +10,19 @@ export function setReadyState(state) {
     isReady = state;
 }
 
-export async function createRoom(currentUser, currentHero) {
+export async function createRoom(currentUser, currentHero, isPublic = true) {
     const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const enemy = getRandomEnemyForLevel(currentHero.level);
+    currentRoomId = roomCode;
+    isReady = false;
 
     const roomData = {
         host: currentUser.uid,
-        status: "campfire",
-        enemy: enemy,
+        isPublic: isPublic,
+        status: "waiting", // Usamos "waiting" para el campamento de espera
+        currentNode: "start_tavern",
         turnOrder: [],
         activeTurnIndex: 0,
+        storyVotes: {},
         players: {
             [currentUser.uid]: {
                 name: currentHero.name,
@@ -30,21 +32,28 @@ export async function createRoom(currentUser, currentHero) {
                 ready: false
             }
         },
-        log: [enemy.introText]
+        log: ["🏕️ La party se ha reunido en la fogata del campamento."]
     };
 
     await setDoc(doc(db, "rooms", roomCode), roomData);
-    isReady = false;
     return roomCode;
 }
 
 export async function joinRoom(currentUser, currentHero, roomCode) {
     const roomRef = doc(db, "rooms", roomCode);
     const roomSnap = await getDoc(roomRef);
-    if (!roomSnap.exists()) throw new Error("La sala no existe.");
+    if (!roomSnap.exists()) throw new Error("La sala con ese código no existe.");
 
     const room = roomSnap.data();
-    if (room.status !== "campfire") throw new Error("La partida ya ha comenzado.");
+    if (room.status !== "waiting") throw new Error("La partida ya ha comenzado.");
+
+    const playersCount = Object.keys(room.players || {}).length;
+    if (playersCount >= 4 && !room.players[currentUser.uid]) {
+        throw new Error("La sala está llena (máximo 4 jugadores).");
+    }
+
+    currentRoomId = roomCode;
+    isReady = false;
 
     room.players[currentUser.uid] = {
         name: currentHero.name,
@@ -55,7 +64,6 @@ export async function joinRoom(currentUser, currentHero, roomCode) {
     };
 
     await updateDoc(roomRef, { players: room.players });
-    isReady = false;
     return roomCode;
 }
 
@@ -65,6 +73,7 @@ export function leaveRoomListener() {
         unsubscribeRoom = null;
     }
     currentRoomId = null;
+    isReady = false;
 }
 
 export function attachRoomListener(roomCode, onRoomUpdate) {
