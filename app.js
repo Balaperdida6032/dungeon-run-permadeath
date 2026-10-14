@@ -1,4 +1,4 @@
-// app.js - Punto de Entrada Principal del Juego (Versión Final Completa e Integrada)
+// app.js - Punto de Entrada Principal del Juego (Versión Final con VibeVoice)
 import { 
     auth, db, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, signOut, onAuthStateChanged,
@@ -14,6 +14,7 @@ import {
     currentRoomId, createRoom, joinRoom, attachRoomListener, leaveRoomListener, isReady, setReadyState 
 } from './multiplayer-room.js';
 import { storyNodes, resolveStoryVote, getDynamicImageForText } from './story-system.js';
+import { speakNarratorText } from './audio-system.js';
 
 let currentUser = null;
 let currentHeroId = null;
@@ -371,7 +372,7 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // CAMPAMENTO CON 4 SLOTS FIJOS Y BOTÓN DE KICK (PERMITE INICIAR CON CUALQUIER CANTIDAD DE JUGADORES LISTOS)
+    // CAMPAMENTO CON 4 SLOTS FIJOS Y BOTÓN DE KICK
     function updateCampfireUI(room) {
         const partyListDiv = document.getElementById('campfire-party-list');
         if (!partyListDiv) return;
@@ -496,7 +497,7 @@ window.addEventListener('DOMContentLoaded', () => {
         showLobbyView('adventure');
     });
 
-    // SISTEMA NARRATIVO Y DE VOTACIÓN CON MÁQUINA DE ESCRIBIR E IMÁGENES DINÁMICAS
+    // SISTEMA NARRATIVO CON VIBEVOICE TTS, MÁQUINA DE ESCRIBIR E IMÁGENES DINÁMICAS
     function renderStoryNode(room, isSolo = false) {
         const nodeId = room.currentNode || "start_tavern";
         const node = storyNodes[nodeId];
@@ -518,6 +519,9 @@ window.addEventListener('DOMContentLoaded', () => {
             textElement.innerText = "";
             let charIndex = 0;
             const fullText = node.text;
+
+            // Enviar el texto completo a VibeVoice TTS para síntesis de voz expresiva
+            speakNarratorText(fullText, 0);
 
             typingTimer = setInterval(() => {
                 if (charIndex < fullText.length) {
