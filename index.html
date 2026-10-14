@@ -9,11 +9,9 @@
 </head>
 <body>
 
-    <!-- CONTENEDOR DE NOTIFICACIONES FLOTANTES (TOASTS) -->
     <div id="toast-container"></div>
 
     <div id="dashboard-layout">
-        <!-- NAVBAR / SIDEBAR LATERAL IZQUIERDO -->
         <nav id="sidebar" class="sidebar-hidden">
             <div class="sidebar-header">
                 <h2>DUNGEON RUN</h2>
@@ -28,7 +26,6 @@
             </div>
         </nav>
 
-        <!-- CONTENIDO PRINCIPAL -->
         <main id="main-content">
             
             <!-- PANTALLA 1: AUTENTICACIÓN -->
@@ -44,10 +41,8 @@
                 </div>
             </div>
 
-            <!-- PANTALLA 2: LOBBY PRINCIPAL (DIVIDIDO EN DOS VISTAS) -->
+            <!-- PANTALLA 2: LOBBY -->
             <div id="screen-lobby" class="screen">
-                
-                <!-- VISTA A: SELECCIÓN / CREACIÓN DE PERSONAJE -->
                 <div id="lobby-view-character">
                     <h1>SELECCIÓN DE HÉROE</h1>
                     <div class="pixel-box">
@@ -58,7 +53,6 @@
                         <button id="btn-show-creator" style="background-color: #a6e3a1; color: #111;">+ Forjar Nuevo Héroe</button>
                     </div>
 
-                    <!-- CREADOR DE HÉROE -->
                     <div id="hero-creator" class="pixel-box" style="display:none;">
                         <h3>Forjar Nuevo Héroe</h3>
                         <input type="text" id="hero-name" placeholder="Nombre del Héroe">
@@ -102,10 +96,8 @@
                     </div>
                 </div>
 
-                <!-- VISTA B: MODO DE AVENTURA (SE MUESTRA TRAS ELEGIR HÉROE) -->
                 <div id="lobby-view-adventure" style="display: none;">
                     <h1>MODO DE AVENTURA</h1>
-                    
                     <div class="pixel-box" style="border-color: #a6e3a1;">
                         <h3>Héroe Activo</h3>
                         <p id="active-hero-display" style="color: #a6e3a1; margin-bottom: 15px;"></p>
@@ -116,9 +108,8 @@
                         <h3>Crear Partida</h3>
                         <label style="font-size: 8px; display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
                             <input type="checkbox" id="chk-is-public" checked style="width: auto; margin:0;"> 
-                            <span>Sala PÚBLICA (visible en el listado para otros jugadores - Solo Multijugador)</span>
+                            <span>Sala PÚBLICA (visible en el listado)</span>
                         </label>
-                        
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                             <button id="btn-create-solo" style="background-color: #fab387; color: #111; flex: 1;">👤 Partida Solitario</button>
                             <button id="btn-create-multi" style="background-color: #a6e3a1; color: #111; flex: 1;">👥 Partida Multijugador</button>
@@ -134,18 +125,16 @@
                     <div class="pixel-box">
                         <h3>🌐 Partidas Públicas Disponibles</h3>
                         <div id="public-rooms-list" style="margin-bottom: 10px;">
-                            <p style="color: #6c7086; font-size: 8px;">No hay salas públicas abiertas en este momento.</p>
+                            <p style="color: #6c7086; font-size: 8px;">No hay salas públicas abiertas.</p>
                         </div>
                         <button id="btn-refresh-rooms" style="background-color: #89b4fa; color:#111;">🔄 Actualizar Lista</button>
                     </div>
                 </div>
-
             </div>
 
-            <!-- PANTALLA DE PERFIL Y CAMINO DE NIVELES -->
+            <!-- PERFIL -->
             <div id="screen-profile" class="screen">
                 <h1>PERFIL Y PROGRESIÓN</h1>
-
                 <div class="pixel-box" style="border-color: #f9e2af; background-color: #1e1e2e;">
                     <h3 style="color: #f9e2af; margin-top:0;">🌟 NIVEL DE CUENTA: <span id="account-level">1</span></h3>
                     <div class="hp-bar-container" style="height: 14px; margin: 8px 0;">
@@ -153,18 +142,13 @@
                     </div>
                     <small id="account-exp-text" style="color: #cdd6f4;">EXP Cuenta: 0 / 200</small>
                 </div>
-
                 <div class="pixel-box">
-                    <h3>🏆 Camino de Recompensas (Rogue-lite)</h3>
-                    <p style="font-size: 9px; color: #a6e3a1; margin-bottom: 15px;">Desliza horizontalmente para ver las ventajas que desbloqueas al subir de nivel:</p>
-                    
-                    <div id="level-road-container">
-                        <div id="level-road"></div>
-                    </div>
+                    <h3>🏆 Camino de Recompensas</h3>
+                    <div id="level-road-container"><div id="level-road"></div></div>
                 </div>
             </div>
 
-            <!-- PANTALLA DE LOGROS -->
+            <!-- LOGROS -->
             <div id="screen-achievements" class="screen">
                 <h1>LOGROS DE CUENTA</h1>
                 <div class="pixel-box" style="border-color: #a6e3a1;">
@@ -173,19 +157,17 @@
                 <div id="achievements-list"></div>
             </div>
 
-            <!-- PANTALLA LA FOGATA / CAMPAMENTO -->
+            <!-- CAMPAMENTO -->
             <div id="screen-campfire" class="screen">
                 <h1 style="color: #fab387;">🔥 CAMPAMENTO - FOGATA 🔥</h1>
                 <div class="pixel-box" style="text-align: center;">
                     <h3>CÓDIGO DE SALA</h3>
                     <h2 id="campfire-room-code" style="color: #a6e3a1; font-size: 24px; letter-spacing: 3px;">----</h2>
                 </div>
-
                 <div class="pixel-box">
                     <h3>Aventureros Descansando</h3>
                     <div id="campfire-party-list"></div>
                 </div>
-
                 <div class="pixel-box" style="text-align: center;">
                     <button id="btn-toggle-ready" style="background-color: #f9e2af; color: #111; margin-bottom: 15px;">⏳ Marcarme como LISTO</button>
                     <button id="btn-start-adventure" disabled style="background-color: #a6e3a1; color: #111;">⚔️ Comenzar Aventura</button>
@@ -193,19 +175,22 @@
                 </div>
             </div>
 
-            <!-- PANTALLA DE HISTORIA NARRATIVA INTERACTIVA -->
+            <!-- HISTORIA NARRATIVA -->
             <div id="screen-story" class="screen">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h2 id="story-title" style="color: #f9e2af; margin:0;">CARGANDO HISTORIA...</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                    <h2 id="story-title" style="color: #f9e2af; margin:0; font-size: 14px;">CARGANDO...</h2>
                     <div style="display: flex; gap: 8px;">
+                        <button id="btn-speak-narrator" style="background-color: #f9e2af; color: #111; padding: 6px 12px; font-size: 8px; margin:0;">🗣️ Escuchar Narración</button>
                         <button id="btn-toggle-audio" style="background-color: #a6e3a1; color: #111; padding: 6px 10px; font-size: 8px; margin:0;">🔊 Voz: ON</button>
                     </div>
                 </div>
                 
                 <div class="pixel-box" style="text-align: center;">
                     <img id="story-image" src="" alt="Escena" style="max-width: 180px; height: auto; image-rendering: pixelated; margin: 0 auto 15px auto; display: none; border: 2px solid #45475a;">
-                    <!-- Caja de texto con salto automático y adaptada para prevenir desbordamientos -->
-                    <p id="story-text" style="font-size: 10px; line-height: 1.8; color: #cdd6f4; text-align: left; background: #11111b; padding: 15px; border: 2px solid #313244; margin:0; word-break: break-word; white-space: pre-wrap;"></p>
+                    <!-- Contenedor con ancho fluido estricto para que el texto nunca desborde -->
+                    <div style="width: 100%; overflow: hidden;">
+                        <p id="story-text" style="font-size: 10px; line-height: 1.8; color: #cdd6f4; text-align: left; background: #11111b; padding: 15px; border: 2px solid #313244; margin:0; width: 100%; box-sizing: border-box; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap;"></p>
+                    </div>
                 </div>
 
                 <div class="pixel-box">
@@ -214,7 +199,7 @@
                 </div>
             </div>
 
-            <!-- PANTALLA MAZMORRA (COMBATE TÁCTICO POR TURNOS) -->
+            <!-- MAZMORRA -->
             <div id="screen-dungeon" class="screen">
                 <h2 id="room-title">MAZMORRA - COMBATE</h2>
                 <div class="flex-row">
@@ -224,15 +209,13 @@
                     </div>
                     <div class="pixel-box" style="flex:1; text-align:center;">
                         <h3>Enemigo</h3>
-                        <img id="enemy-portrait" src="" alt="Enemigo Pixel Art" style="width: 80px; height: 80px; image-rendering: pixelated; margin: 0 auto 10px auto; display:none;">
+                        <img id="enemy-portrait" src="" alt="Enemigo" style="width: 80px; height: 80px; image-rendering: pixelated; margin: 0 auto 10px auto; display:none;">
                         <div id="enemy-name" class="text-warning">Cargando...</div>
                         <div class="hp-bar-container"><div id="enemy-hp-bar" class="hp-bar-fill"></div></div>
                         <span id="enemy-hp-text">HP: --/--</span>
                     </div>
                 </div>
-
                 <div id="combat-log"></div>
-
                 <div class="pixel-box" id="combat-actions">
                     <h3>Tus Acciones</h3>
                     <button id="btn-action-attack">⚔️ Atacar</button>
@@ -245,7 +228,6 @@
         </main>
     </div>
 
-    <!-- MODAL PERSONALIZADO -->
     <div id="custom-modal" class="modal-overlay" style="display:none;">
         <div class="modal-content pixel-box">
             <h3 id="modal-title" style="margin-top:0; color:#f9e2af;">MENSAJE</h3>

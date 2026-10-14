@@ -1,4 +1,4 @@
-// app.js - Punto de Entrada Principal del Juego (Versión Final con VibeVoice)
+// app.js - Punto de Entrada Principal del Juego (Versión Final Definitiva)
 import { 
     auth, db, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, signOut, onAuthStateChanged,
@@ -11,10 +11,10 @@ import {
     accountData, loadAccountData, addAccountExp, renderAccountUI, renderAchievementsUI, checkAndUnlockAchievement 
 } from './account-system.js';
 import { 
-    currentRoomId, createRoom, joinRoom, attachRoomListener, leaveRoomListener, isReady, setReadyState 
+    currentRoomId, createRoom, joinRoom, attachRoomListener, leaveRoom, isReady, setReadyState 
 } from './multiplayer-room.js';
 import { storyNodes, resolveStoryVote, getDynamicImageForText } from './story-system.js';
-import { speakNarratorText } from './audio-system.js';
+import { speakNarratorText, toggleAudioSystem, repeatLastSpeech } from './audio-system.js';
 
 let currentUser = null;
 let currentHeroId = null;
@@ -46,7 +46,21 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // CONTROL DEL NAVBAR LATERAL
+    // CONTROLES DE AUDIO
+    safeAddEvent('btn-toggle-audio', 'click', () => {
+        const isNowOn = toggleAudioSystem();
+        const btn = document.getElementById('btn-toggle-audio');
+        if (btn) {
+            btn.innerText = isNowOn ? "🔊 Voz: ON" : "🔇 Voz: OFF";
+            btn.style.backgroundColor = isNowOn ? "#a6e3a1" : "#f38ba8";
+        }
+    });
+
+    safeAddEvent('btn-speak-narrator', 'click', () => {
+        repeatLastSpeech();
+    });
+
+    // NAVBAR
     safeAddEvent('nav-lobby', 'click', () => {
         setNavActive('nav-lobby');
         switchScreen('screen-lobby');
@@ -70,7 +84,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (btn) btn.classList.add('active-nav');
     }
 
-    // AUTH LISTENERS
+    // AUTH
     safeAddEvent('btn-login', 'click', async () => {
         const email = document.getElementById('auth-email').value;
         const pass = document.getElementById('auth-password').value;
@@ -95,7 +109,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     safeAddEvent('btn-logout', 'click', () => signOut(auth));
 
-    // CREADOR DE PERSONAJES Y VISTAS DEL LOBBY
+    // CREADOR Y STATS
     const classSelect = document.getElementById('hero-class');
     function updateStatUI() {
         safeSetText('stat-points-left', availablePoints);
@@ -248,7 +262,7 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // PARTIDAS PÚBLICAS Y LISTENER
+    // SALAS PÚBLICAS
     function listenPublicRooms() {
         const roomsRef = collection(db, "rooms");
         onSnapshot(roomsRef, (snapshot) => {
@@ -271,7 +285,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     item.style.justifyContent = "space-between";
                     item.style.alignItems = "center";
                     item.innerHTML = `
-                        <span>🏰 Sala: <strong>${code}</strong> (${playerCount}/4 Jugadores)</span>
+                        <span>🏰 Sala: <strong>${code}</strong> (${playerCount}/4)</span>
                         <button class="btn-join-public" data-code="${code}" style="margin:0; background-color:#a6e3a1; color:#111;">Unirse</button>
                     `;
                     listDiv.appendChild(item);
@@ -279,7 +293,7 @@ window.addEventListener('DOMContentLoaded', () => {
             });
 
             if (publicCount === 0) {
-                listDiv.innerHTML = `<p style="color: #6c7086; font-size: 8px;">No hay salas públicas abiertas en este momento.</p>`;
+                listDiv.innerHTML = `<p style="color: #6c7086; font-size: 8px;">No hay salas públicas abiertas.</p>`;
             }
 
             document.querySelectorAll('.btn-join-public').forEach(btn => {
@@ -299,7 +313,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     safeAddEvent('btn-refresh-rooms', 'click', listenPublicRooms);
 
-    // --- ACCIÓN: BOTÓN PARTIDA SOLITARIO ---
+    // PARTIDA SOLITARIO
     safeAddEvent('btn-create-solo', 'click', async () => {
         if (!currentHero) return showCustomModal("Selecciona un personaje primero.");
         try {
@@ -314,11 +328,11 @@ window.addEventListener('DOMContentLoaded', () => {
             });
             startCampfireFlow(code, true);
         } catch (e) {
-            showCustomModal("Error al crear partida solitaria: " + e.message);
+            showCustomModal("Error: " + e.message);
         }
     });
 
-    // --- ACCIÓN: BOTÓN PARTIDA MULTIJUGADOR ---
+    // MULTIJUGADOR
     safeAddEvent('btn-create-multi', 'click', async () => {
         if (!currentHero) return showCustomModal("Selecciona un personaje primero.");
         try {
@@ -327,7 +341,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const code = await createRoom(currentUser, currentHero, isPublic);
             startCampfireFlow(code, false);
         } catch (e) {
-            showCustomModal("Error al crear partida multijugador: " + e.message);
+            showCustomModal("Error: " + e.message);
         }
     });
 
@@ -335,7 +349,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!currentHero) return showCustomModal("Selecciona un personaje primero.");
         const roomInput = document.getElementById('room-code-input');
         const code = roomInput ? roomInput.value.trim().toUpperCase() : "";
-        if (!code) return showCustomModal("Introduce un código de sala válido.");
+        if (!code) return showCustomModal("Introduce un código válido.");
         try {
             await joinRoom(currentUser, currentHero, code);
             startCampfireFlow(code, false);
@@ -344,16 +358,15 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // FLUJO DE LA FOGATA / AVENTURA
     function startCampfireFlow(code, isSolo = false) {
         attachRoomListener(code, (roomData) => {
             if (!roomData) return;
 
             if (roomData.players && !roomData.players[currentUser.uid]) {
-                leaveRoomListener();
+                leaveRoom(currentUser.uid);
                 switchScreen('screen-lobby');
                 showLobbyView('adventure');
-                showCustomModal("Has sido expulsado de la sala por el host.", "❌ EXPULSADO");
+                showCustomModal("Has sido expulsado de la sala.", "❌ EXPULSADO");
                 return;
             }
 
@@ -372,7 +385,6 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // CAMPAMENTO CON 4 SLOTS FIJOS Y BOTÓN DE KICK
     function updateCampfireUI(room) {
         const partyListDiv = document.getElementById('campfire-party-list');
         if (!partyListDiv) return;
@@ -416,7 +428,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (!player.ready) allReady = false;
             } else {
                 slotDiv.className = "campfire-slot";
-                slotDiv.innerHTML = `<span>💤 [Espacio Vacío - Esperando aventurero...]</span><span>---</span>`;
+                slotDiv.innerHTML = `<span>💤 [Espacio Vacío]</span><span>---</span>`;
             }
 
             partyListDiv.appendChild(slotDiv);
@@ -492,12 +504,12 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     safeAddEvent('btn-leave-campfire', 'click', async () => {
-        leaveRoomListener();
+        await leaveRoom(currentUser.uid);
         switchScreen('screen-lobby');
         showLobbyView('adventure');
     });
 
-    // SISTEMA NARRATIVO CON VIBEVOICE TTS, MÁQUINA DE ESCRIBIR E IMÁGENES DINÁMICAS
+    // NARRATIVA CON MÁQUINA DE ESCRIBIR E IMÁGENES DINÁMICAS
     function renderStoryNode(room, isSolo = false) {
         const nodeId = room.currentNode || "start_tavern";
         const node = storyNodes[nodeId];
@@ -520,7 +532,7 @@ window.addEventListener('DOMContentLoaded', () => {
             let charIndex = 0;
             const fullText = node.text;
 
-            // Enviar el texto completo a VibeVoice TTS para síntesis de voz expresiva
+            // Disparar síntesis de voz automática
             speakNarratorText(fullText, 0);
 
             typingTimer = setInterval(() => {
@@ -581,7 +593,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const currentNode = storyNodes[room.currentNode || "start_tavern"];
             const chosenOption = currentNode.options[selectedIndex];
 
-            let tieText = (isTie && !isSolo) ? " 🎲 ¡Había un empate y la suerte decidió el camino!" : "";
+            let tieText = (isTie && !isSolo) ? " 🎲 ¡Empate y decidió el destino!" : "";
             
             showCustomModal(
                 isSolo ? `Elegiste: "${chosenOption.text}".` : `La party decidió: "${chosenOption.text}".${tieText}`,
@@ -602,12 +614,12 @@ window.addEventListener('DOMContentLoaded', () => {
                         const total = d20 + mod;
 
                         if (total >= chosenOption.dc) {
-                            showCustomModal(`🎲 Tirada de Chequeo: ${d20}+${mod}=${total} vs CD ${chosenOption.dc}. ¡ÉXITO!`);
+                            showCustomModal(`🎲 Tirada: ${d20}+${mod}=${total} vs CD ${chosenOption.dc}. ¡ÉXITO!`);
                             const next = chosenOption.successNode;
                             if (next.startsWith("start_combat_")) startCombatFromStory(next, roomRef);
                             else await updateDoc(roomRef, { currentNode: next });
                         } else {
-                            showCustomModal(`🎲 Tirada de Chequeo: ${d20}+${mod}=${total} vs CD ${chosenOption.dc}. ¡FRACASO!`);
+                            showCustomModal(`🎲 Tirada: ${d20}+${mod}=${total} vs CD ${chosenOption.dc}. ¡FRACASO!`);
                             const next = chosenOption.failNode;
                             if (next.startsWith("start_combat_")) startCombatFromStory(next, roomRef);
                             else await updateDoc(roomRef, { currentNode: next });
@@ -636,11 +648,10 @@ window.addEventListener('DOMContentLoaded', () => {
         await updateDoc(roomRef, {
             status: "fighting",
             enemy,
-            log: [`⚔️ ¡Ha comenzado un combate contra ${enemy.name}!`]
+            log: [`⚔️ ¡Combate iniciado contra ${enemy.name}!`]
         });
     }
 
-    // COMBATE TÁCTICO POR TURNOS
     function updateDungeonUI(room) {
         const hasEnemy = room.enemy && room.enemy.hp > 0;
         const turnOrder = room.turnOrder || [];
@@ -719,7 +730,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const goldReward = room.enemy.goldReward || 30;
             
             showCustomModal(
-                `¡Enemigo derrotado! Te extraes con éxito (+${expReward} EXP Héroe, +${expReward} EXP Cuenta, +${goldReward} Oro).`,
+                `¡Enemigo derrotado! (+${expReward} EXP, +${goldReward} Oro).`,
                 "🏆 ¡VICTORIA!",
                 async () => {
                     await checkAndUnlockAchievement(currentUser.uid, "first_victory");
@@ -740,8 +751,8 @@ window.addEventListener('DOMContentLoaded', () => {
         const turnOrder = room.turnOrder || [];
         const activeTurnIndex = room.activeTurnIndex || 0;
 
-        if (turnOrder[activeTurnIndex] !== currentUser.uid) return showCustomModal("Aún no es tu turno.");
-        if (!room.enemy || room.enemy.hp <= 0) return showCustomModal("No hay enemigo para atacar.");
+        if (turnOrder[activeTurnIndex] !== currentUser.uid) return showCustomModal("No es tu turno.");
+        if (!room.enemy || room.enemy.hp <= 0) return showCustomModal("No hay enemigo.");
 
         let statValue = currentHero.stats.str;
         let weaponDice = 8;
@@ -754,19 +765,17 @@ window.addEventListener('DOMContentLoaded', () => {
         const totalAttackRoll = d20Roll + statMod + proficiencyBonus;
 
         if (d20Roll === 1) {
-            room.log.push(`❌ ${currentHero.name} tiró un 1 (¡Pifia!). Su ataque falla.`);
+            room.log.push(`❌ ${currentHero.name} pifió su ataque.`);
         } else if (d20Roll === 20 || totalAttackRoll >= room.enemy.ac) {
             const isCritical = (d20Roll === 20);
             let damage = rollDice(weaponDice) + statMod;
             if (isCritical) damage += rollDice(weaponDice);
-            if (accountData.level >= 4) damage += 2;
             if (damage < 1) damage = 1;
 
             room.enemy.hp -= damage;
-            const critText = isCritical ? "💥 ¡GOLPE CRÍTICO! " : "";
-            room.log.push(`${critText}🎯 ${currentHero.name} tiró ${d20Roll}+${statMod+proficiencyBonus}=${totalAttackRoll} vs CA ${room.enemy.ac}. ¡Impacta e inflige ${damage} de daño!`);
+            room.log.push(`🎯 ${currentHero.name} impacta e inflige ${damage} de daño.`);
         } else {
-            room.log.push(`🛡️ ${currentHero.name} tiró ${d20Roll}+${statMod+proficiencyBonus}=${totalAttackRoll} vs CA ${room.enemy.ac}. El ataque es bloqueado.`);
+            room.log.push(`🛡️ El ataque de ${currentHero.name} es bloqueado.`);
         }
 
         let nextTurnIndex = (activeTurnIndex + 1) % turnOrder.length;
@@ -777,25 +786,22 @@ window.addEventListener('DOMContentLoaded', () => {
 
             if (enemyD20 !== 1 && (enemyD20 === 20 || enemyAttackTotal >= currentHero.stats.ac)) {
                 let enemyDamage = rollDice(room.enemy.damageDice) + 2;
-                if (enemyD20 === 20) enemyDamage += rollDice(room.enemy.damageDice);
-                
                 currentHero.hp -= enemyDamage;
                 if (room.players[currentUser.uid]) room.players[currentUser.uid].hp = currentHero.hp;
-                room.log.push(`👹 ${room.enemy.name} contraataca (Tirada: ${enemyAttackTotal}) e inflige ${enemyDamage} de daño a la party.`);
+                room.log.push(`👹 ${room.enemy.name} inflige ${enemyDamage} de daño.`);
             } else {
-                room.log.push(`🛡️ ${room.enemy.name} intenta contraatacar pero su golpe es esquivado.`);
+                room.log.push(`🛡️ El ataque del enemigo falló.`);
             }
 
             if (currentHero.hp <= 0) {
-                const consolationExp = 25;
                 showCustomModal(
-                    `💀 ¡${currentHero.name} HA MUERTO! Tu héroe ha sido eliminado permanentemente, pero su valentía le otorga +${consolationExp} EXP a tu CUENTA.`,
+                    `💀 ¡${currentHero.name} HA MUERTO! Personaje eliminado permanentemente.`,
                     "☠️ PERMADEATH",
                     async () => {
                         await checkAndUnlockAchievement(currentUser.uid, "first_death");
-                        await addAccountExp(currentUser.uid, consolationExp);
+                        await addAccountExp(currentUser.uid, 25);
                         await deleteDoc(doc(db, "users", currentUser.uid, "characters", currentHeroId));
-                        leaveRoomListener();
+                        await leaveRoom(currentUser.uid);
                         currentHero = null;
                         currentHeroId = null;
                         switchScreen('screen-lobby');
@@ -812,32 +818,24 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     safeAddEvent('btn-action-flee', 'click', () => {
-        showCustomModal("¡Has huido a salvo con tus ganancias actuales!", "🏃‍♂️ HUIDA EXITOSA", () => {
+        showCustomModal("¡Has huido con éxito!", "🏃‍♂️ HUIDA", () => {
             leaveDungeonAndReward(10, 5);
         });
     });
 
     async function leaveDungeonAndReward(expGain, goldGain) {
-        leaveRoomListener();
+        await leaveRoom(currentUser.uid);
 
         if (currentHero && currentHero.hp > 0) {
             currentHero.exp += expGain;
             currentHero.gold += goldGain;
-
-            if (currentHero.gold >= 150) {
-                await checkAndUnlockAchievement(currentUser.uid, "gold_hoarder");
-            }
+            if (currentHero.gold >= 150) await checkAndUnlockAchievement(currentUser.uid, "gold_hoarder");
             
             if (currentHero.exp >= currentHero.level * 100) {
                 currentHero.level += 1;
                 currentHero.maxHp += 20;
                 currentHero.hp = currentHero.maxHp;
-                if (currentHero.stats) {
-                    currentHero.stats.str += 1;
-                    currentHero.stats.dex += 1;
-                    currentHero.stats.int += 1;
-                }
-                showCustomModal(`¡NIVEL DE HÉROE AUMENTADO! Ahora eres nivel ${currentHero.level}`, "🌟 LEVEL UP");
+                showCustomModal(`¡Nivel aumentado a ${currentHero.level}!`, "🌟 LEVEL UP");
             }
 
             await setDoc(doc(db, "users", currentUser.uid, "characters", currentHeroId), currentHero);
@@ -849,17 +847,12 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Funciones auxiliares de seguridad
 function safeAddEvent(elementId, eventType, callback) {
     const el = document.getElementById(elementId);
-    if (el) {
-        el.addEventListener(eventType, callback);
-    }
+    if (el) el.addEventListener(eventType, callback);
 }
 
 function safeSetText(elementId, text) {
     const el = document.getElementById(elementId);
-    if (el) {
-        el.innerText = text;
-    }
+    if (el) el.innerText = text;
 }
