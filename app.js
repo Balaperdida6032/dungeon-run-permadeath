@@ -1,4 +1,4 @@
-// app.js - Punto de Entrada Principal (Actualizado con Inventario, Subasta y Equipamiento)
+// app.js - Punto de Entrada Principal (Versión Final Definitiva)
 import { 
     auth, db, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, signOut, onAuthStateChanged,
@@ -23,6 +23,7 @@ let currentUser = null;
 let currentHero = null;
 let currentHeroId = null;
 
+// Exponer funciones globales requeridas por los módulos
 window.getCurrentHero = () => currentHero;
 window.startCombatFromStory = startCombatFromStory;
 window.handleMissionComplete = async () => {
@@ -52,7 +53,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 currentHero = hero;
             });
 
-            // Inicializar sistema de subastas
             initAuctionSystem(getCurrentHero, getCurrentHeroId, currentUser, () => {
                 updateActiveHeroDisplay(currentUser);
             });
@@ -67,6 +67,22 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // PESTAÑAS DE AUTENTICACIÓN (LOGIN / REGISTRO)
+    safeAddEvent('link-show-register', 'click', (e) => {
+        e.preventDefault();
+        const loginBox = document.getElementById('auth-login-box');
+        const regBox = document.getElementById('auth-register-box');
+        if (loginBox) loginBox.style.display = 'none';
+        if (regBox) regBox.style.display = 'block';
+    });
+
+    safeAddEvent('btn-back-to-login', 'click', () => {
+        const loginBox = document.getElementById('auth-login-box');
+        const regBox = document.getElementById('auth-register-box');
+        if (regBox) regBox.style.display = 'none';
+        if (loginBox) loginBox.style.display = 'block';
+    });
+
     // CONTROLES DE AUDIO
     safeAddEvent('btn-toggle-audio', 'click', () => {
         const isNowOn = toggleAudioSystem();
@@ -79,7 +95,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     safeAddEvent('btn-speak-narrator', 'click', repeatLastSpeech);
 
-    // NAVBAR LATERAL
+    // NAVBAR LATERAL / MÓVIL
     safeAddEvent('nav-lobby', 'click', () => {
         setNavActive('nav-lobby');
         switchScreen('screen-lobby');
@@ -108,21 +124,56 @@ window.addEventListener('DOMContentLoaded', () => {
         if (btn) btn.classList.add('active-nav');
     }
 
-    // AUTH LISTENERS
+    // LOGIN CON MANEJO DE ERRORES VISUALES
     safeAddEvent('btn-login', 'click', async () => {
-        const email = document.getElementById('auth-email').value;
-        const pass = document.getElementById('auth-password').value;
-        if (!email || !pass) return showCustomModal("Ingresa correo y contraseña.");
-        try { await signInWithEmailAndPassword(auth, email, pass); } 
-        catch (e) { showCustomModal("Error: " + e.message); }
+        const email = document.getElementById('auth-login-email').value;
+        const pass = document.getElementById('auth-login-password').value;
+        const errorBox = document.getElementById('login-error-msg');
+        
+        if (!email || !pass) {
+            if (errorBox) {
+                errorBox.innerText = "Por favor, completa todos los campos.";
+                errorBox.style.display = "block";
+            }
+            return;
+        }
+
+        try { 
+            if (errorBox) errorBox.style.display = "none";
+            await signInWithEmailAndPassword(auth, email, pass); 
+        } 
+        catch (e) { 
+            if (errorBox) {
+                errorBox.innerText = "Error: Credenciales incorrectas o usuario no encontrado.";
+                errorBox.style.display = "block";
+            }
+        }
     });
 
+    // REGISTRO CON MANEJO DE ERRORES VISUALES
     safeAddEvent('btn-register', 'click', async () => {
-        const email = document.getElementById('auth-email').value;
-        const pass = document.getElementById('auth-password').value;
-        if (!email || !pass) return showCustomModal("Ingresa correo y contraseña.");
-        try { await createUserWithEmailAndPassword(auth, email, pass); } 
-        catch (e) { showCustomModal("Error: " + e.message); }
+        const email = document.getElementById('auth-reg-email').value;
+        const pass = document.getElementById('auth-reg-password').value;
+        const errorBox = document.getElementById('register-error-msg');
+        
+        if (!email || !pass) {
+            if (errorBox) {
+                errorBox.innerText = "Completa correo y contraseña.";
+                errorBox.style.display = "block";
+            }
+            return;
+        }
+
+        try { 
+            if (errorBox) errorBox.style.display = "none";
+            await createUserWithEmailAndPassword(auth, email, pass); 
+        } 
+        catch (e) { 
+            if (errorBox) {
+                errorBox.innerText = "Error al registrar: " + e.message;
+                errorBox.style.display = "block";
+            }
+        }
     });
 
     safeAddEvent('btn-google', 'click', async () => {
@@ -488,7 +539,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             showCustomModal(
-                `¡Enemigo derrotado! (+${expReward} EXP, +${goldReward} Oro y botín obtenido).`,
+                `¡Enemigo derrotado! (+${expReward} EXP, +${goldReward} Oro y botín).`,
                 "🏆 ¡VICTORIA!",
                 async () => {
                     await checkAndUnlockAchievement(currentUser.uid, "first_victory");
@@ -498,7 +549,6 @@ window.addEventListener('DOMContentLoaded', () => {
                         currentHero.exp += expReward;
                         currentHero.gold += goldReward;
 
-                        // Otorgar un ítem aleatorio al ganar combate
                         const possibleLoot = [
                             { name: "Daga Encantada", type: "weapon", stat: "dex", bonus: 2 },
                             { name: "Escudo de Bronce", type: "armor", stat: "str", bonus: 2 },
@@ -574,8 +624,8 @@ window.addEventListener('DOMContentLoaded', () => {
         const activeTurnIndex = room.activeTurnIndex || 0;
 
         if (turnOrder[activeTurnIndex] !== currentUser.uid) return showCustomModal("No es tu turno.");
-        if (currentHero.potions <= 0) return showCustomModal("¡No te quedan pociones de salud!");
-        if (currentHero.hp >= currentHero.maxHp) return showCustomModal("Ya tienes la salud al máximo.");
+        if (currentHero.potions <= 0) return showCustomModal("¡No te quedan pociones!");
+        if (currentHero.hp >= currentHero.maxHp) return showCustomModal("Salud al máximo.");
 
         currentHero.potions--;
         const healAmount = 40;
@@ -585,7 +635,7 @@ window.addEventListener('DOMContentLoaded', () => {
             room.players[currentUser.uid].hp = currentHero.hp;
         }
 
-        room.log.push(`🧪 ${currentHero.name} bebe una poción y recupera ${healAmount} de HP.`);
+        room.log.push(`🧪 ${currentHero.name} recupera ${healAmount} de HP.`);
         await advanceTurnAndCheckEnemy(room, roomRef);
     });
 
@@ -600,7 +650,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const activeTurnIndex = room.activeTurnIndex || 0;
 
         if (turnOrder[activeTurnIndex] !== currentUser.uid) return showCustomModal("No es tu turno.");
-        if (!room.enemy || room.enemy.hp <= 0) return showCustomModal("No hay enemigo activo.");
+        if (!room.enemy || room.enemy.hp <= 0) return showCustomModal("No hay enemigo.");
 
         let skillName = "Golpe Poderoso";
         let damageMultiplier = 1.5;
@@ -617,7 +667,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const totalSkillDmg = Math.floor(baseDmg * damageMultiplier);
 
         room.enemy.hp -= totalSkillDmg;
-        room.log.push(`✨ ${currentHero.name} usa su habilidad [${skillName}] e inflige ${totalSkillDmg} de daño.`);
+        room.log.push(`✨ ${currentHero.name} usa [${skillName}] e inflige ${totalSkillDmg} de daño.`);
 
         await advanceTurnAndCheckEnemy(room, roomRef);
     });
@@ -642,8 +692,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
             if (currentHero.hp <= 0) {
                 showCustomModal(
-                    `💀 ¡${currentHero.name} HA MUERTO! Personaje eliminado permanentemente.`,
-                    "☠️ PERMADEATH",
+                    `💀 ¡${currentHero.name} HA MUERTO! Permadeath aplicado.`,
+                    "☠️ MUERTE",
                     async () => {
                         await checkAndUnlockAchievement(currentUser.uid, "first_death");
                         await addAccountExp(currentUser.uid, 25);
@@ -668,7 +718,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     safeAddEvent('btn-action-flee', 'click', () => {
-        showCustomModal("¡Has huido con éxito de la batalla!", "🏃‍♂️ HUIDA", () => {
+        showCustomModal("¡Has huido con éxito!", "🏃‍♂️ HUIDA", () => {
             leaveDungeonAndReward(10, 5);
         });
     });

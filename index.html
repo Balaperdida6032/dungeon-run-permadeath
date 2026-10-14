@@ -12,35 +12,50 @@
     <div id="toast-container"></div>
 
     <div id="dashboard-layout">
-        <!-- SIDEBAR LATERAL -->
+        <!-- SIDEBAR LATERAL / NAVEGACIÓN MÓVIL INFERIOR -->
         <nav id="sidebar" class="sidebar-hidden">
             <div class="sidebar-header">
                 <h2>DUNGEON RUN</h2>
             </div>
             <ul class="sidebar-menu">
-                <li><button id="nav-lobby" class="nav-btn active-nav">🏰 Lobby / Jugar</button></li>
-                <li><button id="nav-profile" class="nav-btn">👤 Perfil & Metas</button></li>
+                <li><button id="nav-lobby" class="nav-btn active-nav">🏰 Lobby</button></li>
+                <li><button id="nav-profile" class="nav-btn">👤 Perfil</button></li>
                 <li><button id="nav-achievements" class="nav-btn">🏆 Logros</button></li>
-                <li><button id="nav-auction" class="nav-btn">⚖️ Casa de Subastas</button></li>
+                <li><button id="nav-auction" class="nav-btn">⚖️ Subasta</button></li>
             </ul>
             <div class="sidebar-footer">
-                <button id="btn-logout" style="background-color: #f38ba8; color:#111;">🚪 Cerrar Sesión</button>
+                <button id="btn-logout" style="background-color: #f38ba8; color:#111;">🚪 Salir</button>
             </div>
         </nav>
 
         <!-- CONTENIDO PRINCIPAL -->
         <main id="main-content">
             
-            <!-- PANTALLA 1: AUTENTICACIÓN -->
+            <!-- PANTALLA 1: AUTENTICACIÓN (LOGIN Y REGISTRO SEPARADOS) -->
             <div id="screen-auth" class="screen active-screen">
                 <h1>DUNGEON RUN:<br>PERMADEATH</h1>
-                <div class="pixel-box" style="max-width: 400px; margin: 0 auto;">
+                
+                <!-- Formulario de Iniciar Sesión -->
+                <div id="auth-login-box" class="pixel-box" style="max-width: 400px; margin: 0 auto;">
                     <h3>Iniciar Sesión</h3>
-                    <input type="email" id="auth-email" placeholder="Correo electrónico">
-                    <input type="password" id="auth-password" placeholder="Contraseña">
+                    <p id="login-error-msg" style="color: #f38ba8; font-size: 7px; display: none; margin-bottom: 10px;"></p>
+                    <input type="email" id="auth-login-email" placeholder="Correo electrónico">
+                    <input type="password" id="auth-login-password" placeholder="Contraseña">
                     <button id="btn-login">Entrar con Email</button>
-                    <button id="btn-register">Registrarse</button>
-                    <button id="btn-google" style="background-color: #cb4b16;">Entrar con Google</button>
+                    <button id="btn-google" style="background-color: #cb4b16; margin-top: 5px;">Entrar con Google</button>
+                    <p style="text-align: center; margin-top: 15px; font-size: 7px;">
+                        ¿No tienes cuenta? <a href="#" id="link-show-register" style="color: #89b4fa;">Regístrate aquí</a>
+                    </p>
+                </div>
+
+                <!-- Formulario de Registro -->
+                <div id="auth-register-box" class="pixel-box" style="max-width: 400px; margin: 0 auto; display: none;">
+                    <h3>Crear Cuenta Nueva</h3>
+                    <p id="register-error-msg" style="color: #f38ba8; font-size: 7px; display: none; margin-bottom: 10px;"></p>
+                    <input type="email" id="auth-reg-email" placeholder="Correo electrónico">
+                    <input type="password" id="auth-reg-password" placeholder="Contraseña (mín. 6 caracteres)">
+                    <button id="btn-register" style="background-color: #a6e3a1; color: #111;">Registrarse</button>
+                    <button id="btn-back-to-login" style="background-color: #45475a; color: #cdd6f4; margin-top: 5px;">Volver a Iniciar Sesión</button>
                 </div>
             </div>
 
@@ -105,7 +120,7 @@
                         <h3>Héroe Activo</h3>
                         <p id="active-hero-display" style="color: #a6e3a1; margin-bottom: 15px;"></p>
                         
-                        <!-- EQUIPAMIENTO E INVENTARIO EN LOBBY -->
+                        <!-- EQUIPAMIENTO E INVENTARIO -->
                         <div style="background: #11111b; padding: 10px; border: 2px solid #313244; margin-bottom: 15px;">
                             <h4 style="color: #f9e2af; margin-top:0;">🛡️ EQUIPAMIENTO ACTUAL</h4>
                             <p style="font-size: 8px;" id="eq-weapon">Arma: Ninguna</p>
@@ -127,8 +142,8 @@
                             <span>Sala PÚBLICA (visible en el listado)</span>
                         </label>
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button id="btn-create-solo" style="background-color: #fab387; color: #111; flex: 1;">👤 Partida Solitario</button>
-                            <button id="btn-create-multi" style="background-color: #a6e3a1; color: #111; flex: 1;">👥 Partida Multijugador</button>
+                            <button id="btn-create-solo" style="background-color: #fab387; color: #111; flex: 1;">👤 Solitario</button>
+                            <button id="btn-create-multi" style="background-color: #a6e3a1; color: #111; flex: 1;">👥 Multijugador</button>
                         </div>
                     </div>
 
@@ -216,7 +231,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
                     <h2 id="story-title" style="color: #f9e2af; margin:0; font-size: 14px;">CARGANDO...</h2>
                     <div style="display: flex; gap: 8px;">
-                        <button id="btn-speak-narrator" style="background-color: #f9e2af; color: #111; padding: 6px 12px; font-size: 8px; margin:0;">🗣️ Escuchar Narración</button>
+                        <button id="btn-speak-narrator" style="background-color: #f9e2af; color: #111; padding: 6px 12px; font-size: 8px; margin:0;">🗣️ Escuchar</button>
                         <button id="btn-toggle-audio" style="background-color: #a6e3a1; color: #111; padding: 6px 10px; font-size: 8px; margin:0;">🔊 Voz: ON</button>
                     </div>
                 </div>
@@ -254,9 +269,9 @@
                 <div class="pixel-box" id="combat-actions">
                     <h3>Tus Acciones</h3>
                     <button id="btn-action-attack">⚔️ Atacar</button>
-                    <button id="btn-action-skill">✨ Habilidad Especial</button>
-                    <button id="btn-action-potion">🧪 Usar Poción (<span id="potion-count">0</span>)</button>
-                    <button id="btn-action-flee" style="background-color: #fab387; color:#111;">🏃‍♂️ Huir / Extraerse</button>
+                    <button id="btn-action-skill">✨ Habilidad</button>
+                    <button id="btn-action-potion">🧪 Poción (<span id="potion-count">0</span>)</button>
+                    <button id="btn-action-flee" style="background-color: #fab387; color:#111;">🏃‍♂️ Huir</button>
                 </div>
             </div>
 
