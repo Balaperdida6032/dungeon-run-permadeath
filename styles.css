@@ -1,5 +1,130 @@
-/* Corrección absoluta de desbordamiento de texto y cajas */
+/* ========================================================================== */
+/* DUNGEON RUN: PERMADEATH - ESTILOS PRINCIPALES (RETRO PIXEL ART)             */
+/* ========================================================================== */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: #11111b;
+    color: #cdd6f4;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+/* LAYOUT GENERAL */
+#dashboard-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* SIDEBAR / NAVBAR LATERAL */
+#sidebar {
+    width: 240px;
+    background-color: #181825;
+    border-right: 4px solid #313244;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px 15px;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-hidden {
+    display: none !important;
+}
+
+.sidebar-header h2 {
+    color: #f9e2af;
+    font-size: 11px;
+    text-align: center;
+    margin-bottom: 25px;
+    text-shadow: 2px 2px #111;
+}
+
+.sidebar-menu {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.nav-btn {
+    width: 100%;
+    background-color: #313244;
+    color: #cdd6f4;
+    border: 2px solid #45475a;
+    padding: 12px 10px;
+    text-align: left;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    cursor: pointer;
+    transition: all 0.1s ease-in-out;
+}
+
+.nav-btn:hover {
+    background-color: #45475a;
+    border-color: #fab387;
+    color: #fab387;
+}
+
+.active-nav {
+    background-color: #89b4fa !important;
+    color: #11111b !important;
+    border-color: #b4befe !important;
+    font-weight: bold;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+}
+
+.sidebar-footer button {
+    width: 100%;
+    font-family: 'Press Start 2P', monospace;
+    padding: 10px;
+    cursor: pointer;
+    border: 2px solid #111;
+}
+
+/* CONTENIDO PRINCIPAL */
+#main-content {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* PANTALLAS */
+.screen {
+    display: none;
+}
+
+.active-screen {
+    display: block;
+}
+
+h1 {
+    color: #f9e2af;
+    font-size: 14px;
+    margin-bottom: 20px;
+    text-align: center;
+    text-shadow: 2px 2px #111;
+}
+
+/* CAJAS ESTILO PIXEL ART */
 .pixel-box {
+    background-color: #181825;
+    border: 4px solid #313244;
+    box-shadow: 4px 4px 0px #11111b;
+    padding: 20px;
+    margin-bottom: 20px;
     box-sizing: border-box;
     max-width: 100%;
     overflow-x: hidden;
@@ -7,6 +132,110 @@
     overflow-wrap: break-word;
 }
 
+.pixel-box h3 {
+    color: #89b4fa;
+    font-size: 10px;
+    margin-bottom: 12px;
+}
+
+/* FORMULARIOS Y BOTONES GENERALES */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+.pixel-select {
+    width: 100%;
+    background-color: #11111b;
+    border: 2px solid #45475a;
+    color: #cdd6f4;
+    padding: 10px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    margin-bottom: 12px;
+    box-sizing: border-box;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #89b4fa;
+}
+
+button {
+    background-color: #a6e3a1;
+    color: #11111b;
+    border: 2px solid #111;
+    padding: 10px 15px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 2px 2px 0px #111;
+    transition: transform 0.1s, background-color 0.1s;
+    margin-top: 5px;
+}
+
+button:hover {
+    background-color: #b4f8c8;
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0px #111;
+}
+
+button:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0px #111;
+}
+
+button:disabled {
+    background-color: #45475a !important;
+    color: #6c7086 !important;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* BARRAS DE VIDA (HP) */
+.hp-bar-container {
+    width: 100%;
+    background-color: #313244;
+    border: 2px solid #45475a;
+    height: 10px;
+    margin: 8px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.hp-bar-fill {
+    height: 100%;
+    background-color: #a6e3a1;
+    width: 100%;
+    transition: width 0.3s ease;
+}
+
+/* TARJETAS Y LISTAS */
+.campfire-slot {
+    background-color: #11111b;
+    border: 2px dashed #45475a;
+    padding: 10px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 8px;
+}
+
+.campfire-slot.occupied {
+    border-style: solid;
+    border-color: #a6e3a1;
+}
+
+.btn-kick {
+    background-color: #f38ba8 !important;
+    color: #111 !important;
+    padding: 4px 8px !important;
+    font-size: 7px !important;
+    margin: 0 !important;
+}
+
+/* NARRATIVA Y CAJA DE TEXTO CORREGIDA */
 #story-text {
     width: 100%;
     max-width: 100%;
@@ -15,4 +244,107 @@
     overflow-wrap: break-word;
     white-space: pre-wrap;
     display: block;
+}
+
+.story-option-btn {
+    width: 100%;
+    text-align: left;
+    background-color: #1e1e2e;
+    color: #cdd6f4;
+    border: 2px solid #45475a;
+    padding: 12px;
+    margin-top: 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    cursor: pointer;
+}
+
+.story-option-btn:hover {
+    border-color: #a6e3a1;
+    background-color: #252538;
+}
+
+/* COMBATE Y MAZMORRA */
+.flex-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+@media (max-width: 768px) {
+    .flex-row {
+        flex-direction: column;
+    }
+}
+
+.player-card-dungeon {
+    background-color: #11111b;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 0;
+}
+
+#combat-log {
+    background-color: #11111b;
+    border: 2px solid #313244;
+    padding: 12px;
+    height: 120px;
+    overflow-y: auto;
+    font-size: 7px;
+    line-height: 1.5;
+    margin-bottom: 15px;
+    color: #a6e3a1;
+}
+
+#combat-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+#combat-actions button {
+    flex: 1;
+    min-width: 120px;
+}
+
+/* TOASTS Y MODALES */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(17, 17, 27, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    width: 90%;
+    max-width: 450px;
+    text-align: center;
+}
+
+/* CAMINO DE NIVELES */
+#level-road-container {
+    overflow-x: auto;
+    padding: 10px 0;
+}
+
+#level-road {
+    display: flex;
+    gap: 15px;
+    min-width: 600px;
 }
