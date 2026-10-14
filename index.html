@@ -9,6 +9,9 @@
 </head>
 <body>
 
+    <!-- CONTENEDOR DE NOTIFICACIONES FLOTANTES (TOASTS) -->
+    <div id="toast-container"></div>
+
     <div id="dashboard-layout">
         <!-- NAVBAR / SIDEBAR LATERAL IZQUIERDO -->
         <nav id="sidebar" class="sidebar-hidden">
@@ -18,6 +21,7 @@
             <ul class="sidebar-menu">
                 <li><button id="nav-lobby" class="nav-btn active-nav">🏰 Lobby / Jugar</button></li>
                 <li><button id="nav-profile" class="nav-btn">👤 Perfil & Metas</button></li>
+                <li><button id="nav-achievements" class="nav-btn">🏆 Logros</button></li>
             </ul>
             <div class="sidebar-footer">
                 <button id="btn-logout" style="background-color: #f38ba8; color:#111;">🚪 Cerrar Sesión</button>
@@ -105,7 +109,7 @@
                 </div>
             </div>
 
-            <!-- PANTALLA DE PERFIL Y CAMINO DE NIVELES (SCROLL HORIZONTAL) -->
+            <!-- PANTALLA DE PERFIL Y CAMINO DE NIVELES -->
             <div id="screen-profile" class="screen">
                 <h1>PERFIL Y PROGRESIÓN</h1>
 
@@ -121,12 +125,20 @@
                     <h3>🏆 Camino de Recompensas (Rogue-lite)</h3>
                     <p style="font-size: 9px; color: #a6e3a1; margin-bottom: 15px;">Desliza horizontalmente para ver las ventajas que desbloqueas al subir de nivel:</p>
                     
-                    <!-- CONTENEDOR CON SCROLL HORIZONTAL DE NIVELES -->
                     <div id="level-road-container">
-                        <div id="level-road">
-                            <!-- Los nodos de nivel se generan dinámicamente con JS -->
-                        </div>
+                        <div id="level-road"></div>
                     </div>
+                </div>
+            </div>
+
+            <!-- PANTALLA DE LOGROS -->
+            <div id="screen-achievements" class="screen">
+                <h1>LOGROS DE CUENTA</h1>
+                <div class="pixel-box" style="border-color: #a6e3a1;">
+                    <h3 style="margin-top:0; color:#a6e3a1;">PROGRESO GENERAL: <span id="achievements-progress-text">0 / 0</span></h3>
+                </div>
+                <div id="achievements-list">
+                    <!-- Los logros se cargan dinámicamente -->
                 </div>
             </div>
 

@@ -1,4 +1,4 @@
-// ui-controller.js - Control de Vistas, Modales e Interfaz de Usuario
+// ui-controller.js - Control de Vistas, Modales y Notificaciones Toast
 
 export function switchScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
@@ -22,4 +22,29 @@ export function showCustomModal(message, title = "DUNGEON RUN", callback = null)
         modal.style.display = 'none';
         if (callback) callback();
     });
+}
+
+// NOTIFICACIÓN POPUP RETRO DE LOGRO DESBLOQUEADO
+export function showAchievementToast(achievementName, icon = "🏆") {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = 'achievement-toast';
+    toast.innerHTML = `
+        <div class="toast-icon">${icon}</div>
+        <div class="toast-body">
+            <span class="toast-title">¡LOGRO DESBLOQUEADO!</span>
+            <span class="toast-name">${achievementName}</span>
+        </div>
+    `;
+
+    container.appendChild(toast);
+
+    // Remover automáticamente después de 4 segundos
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 4000);
 }

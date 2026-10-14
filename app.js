@@ -1,4 +1,4 @@
-// app.js - Punto de Entrada Principal del Juego (Modularizado)
+// app.js - Entrada principal con Navegación y Disparador de Logros
 import { 
     auth, db, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, signOut, onAuthStateChanged,
@@ -7,7 +7,9 @@ import {
 
 import { rollDice, getStatModifier } from './dnd-mechanics.js';
 import { switchScreen, showCustomModal } from './ui-controller.js';
-import { accountData, loadAccountData, addAccountExp } from './account-system.js';
+import { 
+    accountData, loadAccountData, addAccountExp, renderAccountUI, renderAchievementsUI, checkAndUnlockAchievement 
+} from './account-system.js';
 import { 
     currentRoomId, createRoom, joinRoom, attachRoomListener, leaveRoomListener, isReady, setReadyState 
 } from './multiplayer-room.js';
@@ -22,9 +24,12 @@ let baseStats = { str: 10, dex: 10, int: 10 };
 
 window.addEventListener('DOMContentLoaded', () => {
 
+    const sidebar = document.getElementById('sidebar');
+
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             currentUser = user;
+            if (sidebar) sidebar.classList.remove('sidebar-hidden');
             switchScreen('screen-lobby');
             await loadAccountData(user.uid);
             await loadUserCharacters(user.uid);
@@ -32,9 +37,34 @@ window.addEventListener('DOMContentLoaded', () => {
             currentUser = null;
             currentHero = null;
             currentHeroId = null;
+            if (sidebar) sidebar.classList.add('sidebar-hidden');
             switchScreen('screen-auth');
         }
     });
+
+    // CONTROL DEL NAVBAR LATERAL
+    document.getElementById('nav-lobby').addEventListener('click', () => {
+        setNavActive('nav-lobby');
+        switchScreen('screen-lobby');
+    });
+
+    document.getElementById('nav-profile').addEventListener('click', () => {
+        setNavActive('nav-profile');
+        switchScreen('screen-profile');
+        renderAccountUI();
+    });
+
+    document.getElementById('nav-achievements').addEventListener('click', () => {
+        setNavActive('nav-achievements');
+        switchScreen('screen-achievements');
+        renderAchievementsUI();
+    });
+
+    function setNavActive(btnId) {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-nav'));
+        const btn = document.getElementById(btnId);
+        if (btn) btn.classList.add('active-nav');
+    }
 
     // Auth Listeners
     document.getElementById('btn-login').addEventListener('click', async () => {
@@ -61,7 +91,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
-    // Lógica Personajes y Puntos
+    // Lógica Creador de Personajes
     const classSelect = document.getElementById('hero-class');
     function updateStatUI() {
         document.getElementById('stat-points-left').innerText = availablePoints;
@@ -76,7 +106,7 @@ window.addEventListener('DOMContentLoaded', () => {
         else baseStats = { str: 10, dex: 14, int: 10 };
 
         customStats = { ...baseStats };
-        availablePoints = 5;
+        availablePoints = (accountData.level >= 7) ? 6 : 5;
         updateStatUI();
     }
 
@@ -155,6 +185,7 @@ window.addEventListener('DOMContentLoaded', () => {
         loadUserCharacters(currentUser.uid);
     });
 
+    // CREACIÓN DE PERSONAJE
     document.getElementById('btn-create-hero').addEventListener('click', async () => {
         const name = document.getElementById('hero-name').value.trim();
         const clazz = classSelect.value;
@@ -167,15 +198,19 @@ window.addEventListener('DOMContentLoaded', () => {
 
         let initialPotions = (accountData.level >= 2) ? 4 : 3;
         let baseHp = (accountData.level >= 5) ? 120 : 100;
+        let startGold = (accountData.level >= 6) ? 100 : 50;
 
         const newHero = {
-            name, clazz, level: 1, exp: 0, gold: 50, hp: baseHp, maxHp: baseHp, potions: initialPotions,
+            name, clazz, level: 1, exp: 0, gold: startGold, hp: baseHp, maxHp: baseHp, potions: initialPotions,
             stats: { ...customStats, ac }
         };
 
         const charactersRef = collection(db, "users", currentUser.uid, "characters");
         const docRef = await addDoc(charactersRef, newHero);
         
+        // DISPARAR LOGRO PRIMER PERSONAJE
+        await checkAndUnlockAchievement(currentUser.uid, "first_hero");
+
         showCustomModal(`¡Personaje ${name} forjado con éxito!`, "✨ HÉROE CREADO", () => {
             document.getElementById('hero-name').value = "";
             document.getElementById('hero-creator').style.display = 'none';
@@ -350,6 +385,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 `¡Enemigo derrotado! Te extraes con éxito (+${expReward} EXP Héroe, +${expReward} EXP Cuenta, +${goldReward} Oro).`,
                 "🏆 ¡VICTORIA!",
                 async () => {
+                    // DISPARAR LOGRO PRIMERA VICTORIA
+                    await checkAndUnlockAchievement(currentUser.uid, "first_victory");
                     await addAccountExp(currentUser.uid, expReward);
                     leaveDungeonAndReward(expReward, goldReward);
                 }
@@ -421,6 +458,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     `💀 ¡${currentHero.name} HA MUERTO! Tu héroe ha sido eliminado permanentemente, pero su valentía le otorga +${consolationExp} EXP a tu CUENTA.`,
                     "☠️ PERMADEATH",
                     async () => {
+                        // DISPARAR LOGRO DE PRIMERA MUERTE
+                        await checkAndUnlockAchievement(currentUser.uid, "first_death");
                         await addAccountExp(currentUser.uid, consolationExp);
                         await deleteDoc(doc(db, "users", currentUser.uid, "characters", currentHeroId));
                         leaveRoomListener();
@@ -450,6 +489,11 @@ window.addEventListener('DOMContentLoaded', () => {
         if (currentHero && currentHero.hp > 0) {
             currentHero.exp += expGain;
             currentHero.gold += goldGain;
+
+            // DISPARAR LOGRO ACUMULAR 150 ORO
+            if (currentHero.gold >= 150) {
+                await checkAndUnlockAchievement(currentUser.uid, "gold_hoarder");
+            }
             
             if (currentHero.exp >= currentHero.level * 100) {
                 currentHero.level += 1;
