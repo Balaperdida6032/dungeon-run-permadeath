@@ -23,14 +23,8 @@ let currentUser = null;
 let currentHero = null;
 let currentHeroId = null;
 
-// Exponer funciones globales requeridas por los módulos
+// Exponer funciones globales iniciales de forma segura
 window.getCurrentHero = () => currentHero;
-window.startCombatFromStory = startCombatFromStory;
-window.handleMissionComplete = async () => {
-    await checkAndUnlockAchievement(currentUser.uid, "first_victory");
-    await addAccountExp(currentUser.uid, 200);
-    leaveDungeonAndReward(200, 150);
-};
 
 window.addEventListener('DOMContentLoaded', () => {
 
@@ -430,7 +424,7 @@ window.addEventListener('DOMContentLoaded', () => {
         showLobbyView('adventure');
     });
 
-    // COMBATE TÁCTICO
+    // COMBATE TÁCTICO (Declarada antes de exponerse globalmente)
     async function startCombatFromStory(combatType, roomRef) {
         let enemy = {
             name: "Goblin Explorador", hp: 35, maxHp: 35, ac: 11, attackBonus: 2, damageDice: 6, expReward: 40, goldReward: 20,
@@ -455,6 +449,14 @@ window.addEventListener('DOMContentLoaded', () => {
             log: [`⚔️ ¡Combate iniciado contra ${enemy.name}!`]
         });
     }
+
+    // Exponer funciones globales necesarias tras su declaración
+    window.startCombatFromStory = startCombatFromStory;
+    window.handleMissionComplete = async () => {
+        await checkAndUnlockAchievement(currentUser.uid, "first_victory");
+        await addAccountExp(currentUser.uid, 200);
+        leaveDungeonAndReward(200, 150);
+    };
 
     function updateDungeonUI(room) {
         const hasEnemy = room.enemy && room.enemy.hp > 0;
