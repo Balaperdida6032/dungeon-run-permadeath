@@ -371,7 +371,7 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // CAMPAMENTO CON 4 SLOTS FIJOS Y BOTÓN DE KICK
+    // CAMPAMENTO CON 4 SLOTS FIJOS Y BOTÓN DE KICK (PERMITE INICIAR CON CUALQUIER CANTIDAD DE JUGADORES LISTOS)
     function updateCampfireUI(room) {
         const partyListDiv = document.getElementById('campfire-party-list');
         if (!partyListDiv) return;
@@ -416,7 +416,6 @@ window.addEventListener('DOMContentLoaded', () => {
             } else {
                 slotDiv.className = "campfire-slot";
                 slotDiv.innerHTML = `<span>💤 [Espacio Vacío - Esperando aventurero...]</span><span>---</span>`;
-                allReady = false;
             }
 
             partyListDiv.appendChild(slotDiv);
