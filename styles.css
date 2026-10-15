@@ -144,6 +144,25 @@ button:disabled {
     transform: none;
 }
 
+/* Control deslizante de volumen de música */
+input[type=range]#music-volume {
+    -webkit-appearance: none;
+    background: #313244;
+    height: 6px;
+    border: 1px solid #45475a;
+    padding: 0;
+    width: 70px;
+}
+
+input[type=range]#music-volume::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #f9e2af;
+    border: 1px solid #111;
+    cursor: pointer;
+}
+
 /* Barras de HP y EXP */
 .hp-bar-container {
     width: 100%;
@@ -220,7 +239,7 @@ button:disabled {
     }
 
     #dashboard-layout {
-        flex-direction: column-reverse; /* Pone la barra de navegación abajo en móvil como app nativa */
+        flex-direction: column-reverse; /* Menú de navegación abajo en móvil */
         height: 100%;
     }
 
@@ -242,7 +261,7 @@ button:disabled {
     }
 
     .sidebar-header, .sidebar-footer {
-        display: none; /* Ocultar textos y botón de cerrar sesión superior en móvil para ahorrar espacio */
+        display: none;
     }
 
     .sidebar-menu {
@@ -263,16 +282,15 @@ button:disabled {
     #main-content {
         flex: 1;
         padding: 10px;
-        padding-bottom: 70px; /* Margen para que la barra inferior no tape el contenido */
+        padding-bottom: 70px;
     }
 
-    /* Adaptar paneles de combate en columnas móviles */
+    /* Adaptar paneles de combate a columnas en móviles */
     .flex-row {
         flex-direction: column;
         gap: 10px;
     }
 
-    /* Ajustar tamaños de fuente y cajas para pantallas pequeñas */
     h1 {
         font-size: 11px;
         text-align: center;
@@ -291,7 +309,7 @@ button:disabled {
     }
 
     button {
-        padding: 12px 8px; /* Botones más grandes y cómodos para pulsar con el dedo */
+        padding: 12px 8px; /* Botones más cómodos para dispositivos táctiles */
         font-size: 7px;
     }
 }
